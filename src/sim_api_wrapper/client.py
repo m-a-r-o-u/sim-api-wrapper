@@ -10,7 +10,7 @@ from urllib import error as urllib_error
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
 
-from .auth import build_basic_auth_header, load_netrc_credentials
+from .auth import build_bearer_auth_header, load_token_from_env_file
 from .exceptions import SimApiError
 from .models import Institution, Person, ProjectInstitutionLink, User
 
@@ -28,8 +28,9 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         *,
         base_url: str = DEFAULT_BASE_URL,
         timeout: int | float = DEFAULT_TIMEOUT,
-        netrc_path: Optional[str] = None,
-        use_netrc: bool = True,
+        token: Optional[str] = None,
+        env_path: Optional[str] = None,
+        load_env: bool = True,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
@@ -37,15 +38,20 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         self._auth_header: Optional[str] = None
         self._default_headers = {"Accept": "application/json"}
 
-        if use_netrc or netrc_path:
+        if token:
             try:
-                username, password = load_netrc_credentials(self.base_url, netrc_path)
-            except FileNotFoundError:
-                self.logger.debug("No netrc file found; continuing without authentication")
+                self._auth_header = build_bearer_auth_header(token)
             except ValueError as exc:
-                self.logger.debug("Skipping netrc credentials: %s", exc)
+                self.logger.debug("Invalid token supplied: %s", exc)
+        elif load_env or env_path:
+            try:
+                env_token = load_token_from_env_file(env_path)
+            except FileNotFoundError:
+                self.logger.debug("No environment file found; continuing without authentication")
+            except ValueError as exc:
+                self.logger.debug("Skipping token from environment file: %s", exc)
             else:
-                self._auth_header = build_basic_auth_header(username, password)
+                self._auth_header = build_bearer_auth_header(env_token)
 
     # -- context manager protocol -------------------------------------------------
     def __enter__(self) -> "SimApiClient":  # pragma: no cover - context convenience

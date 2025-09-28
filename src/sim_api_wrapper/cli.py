@@ -26,11 +26,16 @@ def configure_logging(verbosity: int) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Interact with the LRZ SIM API.")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Override the API base URL.")
-    parser.add_argument("--netrc", default=None, help="Path to a netrc file for authentication.")
+    parser.add_argument("--token", default=None, help="SIM API token for authentication.")
     parser.add_argument(
-        "--no-netrc",
+        "--env-file",
+        default=None,
+        help="Path to a dotenv file that provides the SIMAPI_TOKEN (default: ~/.simapi.env).",
+    )
+    parser.add_argument(
+        "--no-env-file",
         action="store_true",
-        help="Disable automatic loading of ~/.netrc credentials.",
+        help="Disable automatic loading of ~/.simapi.env.",
     )
     parser.add_argument(
         "--timeout",
@@ -81,9 +86,10 @@ def main(argv: list[str] | None = None) -> int:
 
     with SimApiClient(
         base_url=args.base_url,
-        netrc_path=args.netrc,
+        token=args.token,
+        env_path=args.env_file,
         timeout=args.timeout,
-        use_netrc=not args.no_netrc,
+        load_env=not args.no_env_file,
     ) as client:
         if args.command == "groups":
             result = client.list_groups(args.service)

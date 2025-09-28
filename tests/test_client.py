@@ -39,7 +39,7 @@ def register_response(monkeypatch: pytest.MonkeyPatch) -> Callable[[str, Respons
 
 @pytest.fixture()
 def client() -> SimApiClient:
-    with SimApiClient(use_netrc=False) as api_client:
+    with SimApiClient(load_env=False) as api_client:
         yield api_client
 
 
