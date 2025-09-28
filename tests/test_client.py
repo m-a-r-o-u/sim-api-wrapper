@@ -5,6 +5,7 @@ from typing import Callable, Dict, Tuple
 
 import pytest
 
+from sim_api_wrapper.auth import build_basic_auth_header
 from sim_api_wrapper.client import DEFAULT_BASE_URL, SimApiClient
 from sim_api_wrapper.exceptions import SimApiError
 
@@ -41,6 +42,40 @@ def register_response(monkeypatch: pytest.MonkeyPatch) -> Callable[[str, Respons
 def client() -> SimApiClient:
     with SimApiClient(use_netrc=False) as api_client:
         yield api_client
+
+
+def test_token_authentication(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    token_file = tmp_path / ".simapi.env"
+    token_file.write_text("SIMAPI_TOKEN=test-token\n", encoding="utf-8")
+
+    def fail_netrc(*args, **kwargs):  # pragma: no cover - should not be used
+        raise AssertionError("netrc should not be accessed when token authentication is available")
+
+    monkeypatch.setattr("sim_api_wrapper.client.load_netrc_credentials", fail_netrc)
+
+    client = SimApiClient(token_path=token_file)
+    try:
+        assert client._auth_header == "Basic test-token"
+    finally:
+        client.close()
+
+
+def test_invalid_token_falls_back_to_netrc(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    token_file = tmp_path / ".simapi.env"
+    token_file.write_text("SIMAPI_TOKEN=\n", encoding="utf-8")
+
+    expected_header = build_basic_auth_header("user", "pass")
+
+    def fake_netrc(base_url, netrc_path):
+        return "user", "pass"
+
+    monkeypatch.setattr("sim_api_wrapper.client.load_netrc_credentials", fake_netrc)
+
+    client = SimApiClient(token_path=token_file)
+    try:
+        assert client._auth_header == expected_header
+    finally:
+        client.close()
 
 
 def test_list_groups(register_response, client: SimApiClient) -> None:
