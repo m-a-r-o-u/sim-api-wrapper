@@ -29,8 +29,16 @@ uv pip install -e ".[test]"
 pytest
 ```
 
-The client expects SIM API credentials to be stored in a `.netrc` file (by default `~/.netrc`).
-You can pass a custom path when instantiating the client or via the CLI's `--netrc` option.
+The client expects a SIM API token to be stored in an environment file at `~/.simapi.env`.
+Populate it with a `SIMAPI_TOKEN` entry, for example:
+
+```bash
+echo "SIMAPI_TOKEN=your_token_here" > ~/.simapi.env
+```
+
+The file is loaded automatically via [`python-dotenv`](https://github.com/theskumar/python-dotenv).
+You can provide a custom path, disable automatic loading, or pass the token explicitly via the
+CLI options `--env-file`, `--no-env-file`, and `--token`.
 
 ## Usage
 
@@ -68,8 +76,8 @@ sim-api person 00000000001F17E0
 sim-api user di38qex
 ```
 
-Use `--help` to inspect all options. The CLI respects `--netrc` and `--no-netrc` if you need to
-control authentication explicitly.
+Use `--help` to inspect all options. The CLI accepts `--env-file`, `--no-env-file`, and `--token`
+to control authentication explicitly.
 
 ## Extending the client
 
