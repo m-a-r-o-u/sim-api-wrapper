@@ -48,7 +48,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    subparsers.add_parser("groups", help="List all available project groups.")
+    groups = subparsers.add_parser("groups", help="List all available project groups.")
+    groups.add_argument("service", help="Service identifier, e.g. AI.")
 
     members = subparsers.add_parser("group-members", help="List members of a project group.")
     members.add_argument("group_name", help="Name of the group to inspect.")
@@ -85,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
         use_netrc=not args.no_netrc,
     ) as client:
         if args.command == "groups":
-            result = client.list_groups()
+            result = client.list_groups(args.service)
         elif args.command == "group-members":
             result = client.get_group_members(args.group_name, solve=args.solve)
         elif args.command == "project-institution":

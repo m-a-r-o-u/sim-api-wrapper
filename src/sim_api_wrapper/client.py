@@ -55,10 +55,11 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         self.close()
 
     # -- public API methods -------------------------------------------------------
-    def list_groups(self) -> List[str]:
-        """Return all available project groups."""
+    def list_groups(self, service: str) -> List[str]:
+        """Return all available project groups for the given service."""
 
-        data = self._request_json("GET", "/service/AI/groups")
+        endpoint = f"/service/{service}/groups"
+        data = self._request_json("GET", endpoint)
         if isinstance(data, list):
             return [str(item) for item in data]
         raise SimApiError("Unexpected response payload for groups endpoint")

@@ -47,7 +47,7 @@ def test_list_groups(register_response, client: SimApiClient) -> None:
     url = f"{DEFAULT_BASE_URL}/service/AI/groups"
     register_response(url, json_data=["a1101", "a1101-ai-c"])
 
-    groups = client.list_groups()
+    groups = client.list_groups("AI")
 
     assert groups == ["a1101", "a1101-ai-c"]
 
@@ -187,4 +187,4 @@ def test_error_handling(register_response, client: SimApiClient) -> None:
     )
 
     with pytest.raises(SimApiError):
-        client.list_groups()
+        client.list_groups("AI")
