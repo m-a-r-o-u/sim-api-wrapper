@@ -6,6 +6,7 @@ from typing import Callable, Dict, Tuple
 import pytest
 
 from sim_api_wrapper.client import DEFAULT_BASE_URL, SimApiClient
+from sim_api_wrapper.auth import build_basic_auth_header
 from sim_api_wrapper.exceptions import SimApiError
 
 ResponseTuple = Tuple[int, Dict[str, str], bytes]
@@ -188,3 +189,19 @@ def test_error_handling(register_response, client: SimApiClient) -> None:
 
     with pytest.raises(SimApiError):
         client.list_groups("AI")
+
+
+def test_basic_auth_header_is_sent(monkeypatch: pytest.MonkeyPatch) -> None:
+    observed_headers = {}
+
+    def fake_open(self: SimApiClient, request):
+        observed_headers.update(request.header_items())
+        return 200, {"Content-Type": "application/json"}, b"[]"
+
+    monkeypatch.setattr(SimApiClient, "_open", fake_open)
+
+    with SimApiClient(username="user", password="pass", load_env=False) as api_client:
+        api_client.list_groups("AI")
+
+    header_dict = dict(observed_headers)
+    assert header_dict["Authorization"] == build_basic_auth_header("user", "pass")

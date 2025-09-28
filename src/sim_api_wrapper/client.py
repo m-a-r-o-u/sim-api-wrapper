@@ -10,7 +10,12 @@ from urllib import error as urllib_error
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
 
-from .auth import build_bearer_auth_header, load_token_from_env_file
+from .auth import (
+    build_basic_auth_header,
+    build_bearer_auth_header,
+    load_basic_auth_from_env_file,
+    load_token_from_env_file,
+)
 from .exceptions import SimApiError
 from .models import Institution, Person, ProjectInstitutionLink, User
 
@@ -29,6 +34,8 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         base_url: str = DEFAULT_BASE_URL,
         timeout: int | float = DEFAULT_TIMEOUT,
         token: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         env_path: Optional[str] = None,
         load_env: bool = True,
     ) -> None:
@@ -43,6 +50,14 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
                 self._auth_header = build_bearer_auth_header(token)
             except ValueError as exc:
                 self.logger.debug("Invalid token supplied: %s", exc)
+        elif username or password:
+            if not username or not password:
+                self.logger.debug("Both username and password must be provided for basic auth")
+            else:
+                try:
+                    self._auth_header = build_basic_auth_header(username, password)
+                except ValueError as exc:
+                    self.logger.debug("Invalid basic auth credentials supplied: %s", exc)
         elif load_env or env_path:
             try:
                 env_token = load_token_from_env_file(env_path)
@@ -52,6 +67,17 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
                 self.logger.debug("Skipping token from environment file: %s", exc)
             else:
                 self._auth_header = build_bearer_auth_header(env_token)
+            if not self._auth_header:
+                try:
+                    env_username, env_password = load_basic_auth_from_env_file(env_path)
+                except FileNotFoundError:
+                    self.logger.debug(
+                        "No environment file found for basic auth; continuing without authentication"
+                    )
+                except ValueError as exc:
+                    self.logger.debug("Skipping basic auth credentials from environment file: %s", exc)
+                else:
+                    self._auth_header = build_basic_auth_header(env_username, env_password)
 
     # -- context manager protocol -------------------------------------------------
     def __enter__(self) -> "SimApiClient":  # pragma: no cover - context convenience

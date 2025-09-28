@@ -29,16 +29,18 @@ uv pip install -e ".[test]"
 pytest
 ```
 
-The client expects a SIM API token to be stored in an environment file at `~/.simapi.env`.
-Populate it with a `SIMAPI_TOKEN` entry, for example:
+The client expects authentication details to be stored in an environment file at
+`~/.simapi.env`. Populate it with either a bearer token (`SIMAPI_TOKEN`) or username and
+password pair (`SIMAPI_USERNAME` and `SIMAPI_PASSWORD`), for example:
 
 ```bash
-echo "SIMAPI_TOKEN=your_token_here" > ~/.simapi.env
+echo "SIMAPI_USERNAME=your_username" > ~/.simapi.env
+echo "SIMAPI_PASSWORD=your_password" >> ~/.simapi.env
 ```
 
 The file is loaded automatically via [`python-dotenv`](https://github.com/theskumar/python-dotenv).
-You can provide a custom path, disable automatic loading, or pass the token explicitly via the
-CLI options `--env-file`, `--no-env-file`, and `--token`.
+You can provide a custom path, disable automatic loading, or pass the credentials explicitly via
+the CLI options `--env-file`, `--no-env-file`, `--token`, `--username`, and `--password`.
 
 ## Usage
 
@@ -76,8 +78,8 @@ sim-api person 00000000001F17E0
 sim-api user di38qex
 ```
 
-Use `--help` to inspect all options. The CLI accepts `--env-file`, `--no-env-file`, and `--token`
-to control authentication explicitly.
+Use `--help` to inspect all options. The CLI accepts `--env-file`, `--no-env-file`, `--token`,
+`--username`, and `--password` to control authentication explicitly.
 
 ## Extending the client
 

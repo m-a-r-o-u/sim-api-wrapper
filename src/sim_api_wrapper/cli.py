@@ -27,6 +27,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Interact with the LRZ SIM API.")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Override the API base URL.")
     parser.add_argument("--token", default=None, help="SIM API token for authentication.")
+    parser.add_argument("--username", default=None, help="SIM username for basic authentication.")
+    parser.add_argument(
+        "--password",
+        default=None,
+        help="SIM password for basic authentication (use with caution on shared systems).",
+    )
     parser.add_argument(
         "--env-file",
         default=None,
@@ -87,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
     with SimApiClient(
         base_url=args.base_url,
         token=args.token,
+        username=args.username,
+        password=args.password,
         env_path=args.env_file,
         timeout=args.timeout,
         load_env=not args.no_env_file,
