@@ -5,12 +5,19 @@ from __future__ import annotations
 import json
 import logging
 from contextlib import AbstractContextManager
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from urllib import error as urllib_error
 from urllib import parse as urllib_parse
 from urllib import request as urllib_request
 
-from .auth import build_basic_auth_header, load_netrc_credentials
+from .auth import (
+    DEFAULT_SIMAPI_ENV_PATH,
+    TokenConfigurationError,
+    build_basic_auth_header,
+    load_netrc_credentials,
+    load_simapi_token,
+)
 from .exceptions import SimApiError
 from .models import Institution, Person, ProjectInstitutionLink, User
 
@@ -28,6 +35,7 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         *,
         base_url: str = DEFAULT_BASE_URL,
         timeout: int | float = DEFAULT_TIMEOUT,
+        token_path: Optional[str | Path] = None,
         netrc_path: Optional[str] = None,
         use_netrc: bool = True,
     ) -> None:
@@ -37,15 +45,38 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         self._auth_header: Optional[str] = None
         self._default_headers = {"Accept": "application/json"}
 
-        if use_netrc or netrc_path:
+        token_source = Path(token_path).expanduser() if token_path else DEFAULT_SIMAPI_ENV_PATH
+        try:
+            token = load_simapi_token(token_path)
+        except TokenConfigurationError as exc:
+            self.logger.error(
+                "SIM API token misconfigured (%s). Falling back to netrc authentication if available.",
+                exc,
+            )
+        else:
+            if token:
+                self._auth_header = f"Basic {token}"
+                self.logger.info("Using SIM API token authentication from %s", token_source)
+            else:
+                if use_netrc or netrc_path:
+                    message = "SIM API token not available at %s; attempting netrc authentication."
+                else:
+                    message = "SIM API token not available at %s; proceeding without authentication."
+                self.logger.info(message, token_source)
+
+        if not self._auth_header and (use_netrc or netrc_path):
             try:
                 username, password = load_netrc_credentials(self.base_url, netrc_path)
             except FileNotFoundError:
-                self.logger.debug("No netrc file found; continuing without authentication")
+                self.logger.warning(
+                    "netrc file not found at %s; continuing without netrc authentication",
+                    Path(netrc_path).expanduser() if netrc_path else Path("~/.netrc").expanduser(),
+                )
             except ValueError as exc:
-                self.logger.debug("Skipping netrc credentials: %s", exc)
+                self.logger.warning("Skipping netrc credentials: %s", exc)
             else:
                 self._auth_header = build_basic_auth_header(username, password)
+                self.logger.info("Using netrc-based authentication for %s", self.base_url)
 
     # -- context manager protocol -------------------------------------------------
     def __enter__(self) -> "SimApiClient":  # pragma: no cover - context convenience
