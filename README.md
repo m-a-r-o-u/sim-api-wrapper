@@ -40,7 +40,7 @@ You can pass a custom path when instantiating the client or via the CLI's `--net
 from sim_api_wrapper import SimApiClient
 
 with SimApiClient() as client:
-    groups = client.list_groups()
+    groups = client.list_groups("AI")
     members = client.get_group_members("pn69ju-ai-c")
     links = client.get_project_institution_links("pn69ju")
     institution = client.get_institution("0000000000E4EE4B")
@@ -60,7 +60,7 @@ structured access to the response payload.
 A small CLI is bundled for quick lookups:
 
 ```bash
-sim-api groups
+sim-api groups AI
 sim-api group-members pn69ju-ai-c
 sim-api project-institution pn69ju
 sim-api institution 0000000000E4EE4B
