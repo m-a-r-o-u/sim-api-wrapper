@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import codecs
 import logging
 from dataclasses import asdict, is_dataclass
 from typing import Any, Callable
@@ -134,10 +135,11 @@ def main(argv: list[str] | None = None) -> int:
     payload = _prepare_payload(result)
     formatter = _select_formatter(args.format)
     fields = parse_fields(args.fields)
+    separator = _decode_separator(args.sep)
     text = formatter(
         payload,
         fields=fields,
-        separator=args.sep,
+        separator=separator,
         include_header=not args.no_header,
     )
     print(text)
@@ -164,6 +166,15 @@ def _select_formatter(fmt: str) -> Callable[..., str]:
         return mapping[fmt]
     except KeyError:  # pragma: no cover - argparse restricts format
         raise ValueError(f"Unsupported format: {fmt}")
+
+
+def _decode_separator(value: str) -> str:
+    """Interpret escape sequences in separators from CLI arguments."""
+
+    try:
+        return codecs.decode(value, "unicode_escape")
+    except Exception:
+        return value
 
 
 if __name__ == "__main__":  # pragma: no cover
