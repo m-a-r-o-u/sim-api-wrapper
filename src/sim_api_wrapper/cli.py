@@ -30,22 +30,22 @@ def configure_logging(verbosity: int) -> None:
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Interact with the LRZ SIM API.")
-    parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Override the API base URL.")
-    parser.add_argument("--netrc", default=None, help="Path to a netrc file for authentication.")
-    parser.add_argument(
+def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Override the API base URL.")
+    common.add_argument("--netrc", default=None, help="Path to a netrc file for authentication.")
+    common.add_argument(
         "--no-netrc",
         action="store_true",
         help="Disable automatic loading of ~/.netrc credentials.",
     )
-    parser.add_argument(
+    common.add_argument(
         "--timeout",
         type=float,
         default=DEFAULT_TIMEOUT,
         help="Timeout in seconds for API requests (default: %(default)s).",
     )
-    parser.add_argument(
+    common.add_argument(
         "-v",
         "--verbose",
         action="count",
@@ -53,28 +53,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="Increase logging verbosity (use -vv for debug logs).",
     )
 
-    parser.add_argument(
+    common.add_argument(
         "--format",
         choices=("json", "kv", "lines", "delimited", "table"),
         default="json",
         help="Output format for the response (default: %(default)s).",
     )
-    parser.add_argument(
+    common.add_argument(
         "--sep",
         default=",",
         help="Separator used for delimited and table formats (default: '%(default)s').",
     )
-    parser.add_argument(
+    common.add_argument(
         "--fields",
         default=None,
         help="Comma-separated list of fields to include in the output.",
     )
-    parser.add_argument(
+    common.add_argument(
         "--no-header",
         action="store_true",
         help="Omit header row when using delimited or table formats.",
     )
 
+    parser = argparse.ArgumentParser(description="Interact with the LRZ SIM API.", parents=[common])
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     groups = subparsers.add_parser("groups", help="List all available project groups.")
@@ -100,12 +101,13 @@ def build_parser() -> argparse.ArgumentParser:
     user = subparsers.add_parser("user", help="Fetch user details by username.")
     user.add_argument("username", help="SIM username / Kennung.")
 
-    return parser
+    return parser, common
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    parser, common = build_parser()
+    global_args, remaining = common.parse_known_args(argv)
+    args = parser.parse_args(remaining, namespace=global_args)
     configure_logging(args.verbose)
 
     with SimApiClient(
