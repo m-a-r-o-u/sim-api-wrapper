@@ -25,6 +25,9 @@ classifiers = [
 test = [
     "pytest>=8.0",
 ]
+dev = [
+    "pytest>=8.0",
+]
 
 [project.scripts]
 sim-api = "sim_api_wrapper.cli:main"
