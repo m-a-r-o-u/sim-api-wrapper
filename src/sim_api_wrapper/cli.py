@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 from dataclasses import asdict, is_dataclass
-from typing import Any
+from typing import Any, Callable
 
 from .client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, SimApiClient
+from .formatters import (
+    emit_delimited,
+    emit_json,
+    emit_kv,
+    emit_lines,
+    emit_table,
+    parse_fields,
+)
 
 
 def configure_logging(verbosity: int) -> None:
@@ -44,6 +51,28 @@ def build_parser() -> argparse.ArgumentParser:
         action="count",
         default=0,
         help="Increase logging verbosity (use -vv for debug logs).",
+    )
+
+    parser.add_argument(
+        "--format",
+        choices=("json", "kv", "lines", "delimited", "table"),
+        default="json",
+        help="Output format for the response (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--sep",
+        default=",",
+        help="Separator used for delimited and table formats (default: '%(default)s').",
+    )
+    parser.add_argument(
+        "--fields",
+        default=None,
+        help="Comma-separated list of fields to include in the output.",
+    )
+    parser.add_argument(
+        "--no-header",
+        action="store_true",
+        help="Omit header row when using delimited or table formats.",
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -100,19 +129,39 @@ def main(argv: list[str] | None = None) -> int:
         else:  # pragma: no cover - argparse ensures this is unreachable
             parser.error(f"Unknown command: {args.command}")
 
-    _print_result(result)
+    payload = _prepare_payload(result)
+    formatter = _select_formatter(args.format)
+    fields = parse_fields(args.fields)
+    text = formatter(
+        payload,
+        fields=fields,
+        separator=args.sep,
+        include_header=not args.no_header,
+    )
+    print(text)
     return 0
 
 
-def _print_result(result: Any) -> None:
+def _prepare_payload(result: Any) -> Any:
     if is_dataclass(result):
-        payload = asdict(result)
-    elif isinstance(result, list) and result and is_dataclass(result[0]):
-        payload = [asdict(item) for item in result]
-    else:
-        payload = result
+        return asdict(result)
+    if isinstance(result, list) and result and is_dataclass(result[0]):
+        return [asdict(item) for item in result]
+    return result
 
-    print(json.dumps(payload, indent=2, ensure_ascii=False))
+
+def _select_formatter(fmt: str) -> Callable[..., str]:
+    mapping: dict[str, Callable[..., str]] = {
+        "json": emit_json,
+        "kv": emit_kv,
+        "lines": emit_lines,
+        "delimited": emit_delimited,
+        "table": emit_table,
+    }
+    try:
+        return mapping[fmt]
+    except KeyError:  # pragma: no cover - argparse restricts format
+        raise ValueError(f"Unsupported format: {fmt}")
 
 
 if __name__ == "__main__":  # pragma: no cover
