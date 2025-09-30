@@ -70,6 +70,76 @@ def _split_expression(spec: str, delimiter: str) -> list[str]:
     return parts
 
 
+def _split_logical(spec: str, operator: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    bracket_depth = 0
+    paren_depth = 0
+    brace_depth = 0
+    in_single_quote = False
+    in_double_quote = False
+    escape_next = False
+    index = 0
+    length = len(spec)
+
+    while index < length:
+        char = spec[index]
+        if escape_next:
+            current.append(char)
+            escape_next = False
+            index += 1
+            continue
+
+        if char == "\\" and (in_single_quote or in_double_quote):
+            current.append(char)
+            escape_next = True
+            index += 1
+            continue
+
+        if char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+            current.append(char)
+            index += 1
+            continue
+
+        if char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+            current.append(char)
+            index += 1
+            continue
+
+        if not in_single_quote and not in_double_quote:
+            if char == "[":
+                bracket_depth += 1
+            elif char == "]" and bracket_depth:
+                bracket_depth -= 1
+            elif char == "(":
+                paren_depth += 1
+            elif char == ")" and paren_depth:
+                paren_depth -= 1
+            elif char == "{":
+                brace_depth += 1
+            elif char == "}" and brace_depth:
+                brace_depth -= 1
+
+            if (
+                bracket_depth == 0
+                and paren_depth == 0
+                and brace_depth == 0
+                and spec.startswith(operator, index)
+            ):
+                parts.append("".join(current))
+                current = []
+                index += len(operator)
+                continue
+
+        current.append(char)
+        index += 1
+
+    parts.append("".join(current))
+    return parts
+
+
 def parse_fields(spec: str | None) -> list[str] | None:
     """Parse a comma separated list of field expressions.
 
@@ -360,6 +430,19 @@ def _apply_filter(value: Any, expression: str) -> Any:
 
 def _matches_filter(item: Any, expression: str) -> bool:
     expression = expression.strip()
+    while (
+        expression.startswith("(")
+        and expression.endswith(")")
+        and _find_closing(expression, "(", ")") == len(expression) - 1
+    ):
+        expression = expression[1:-1].strip()
+
+    for operator, combiner in (("||", any), ("&&", all)):
+        parts = [part.strip() for part in _split_logical(expression, operator)]
+        if len(parts) > 1:
+            evaluations = (_matches_filter(item, part) for part in parts if part)
+            return combiner(evaluations)
+
     if expression.startswith("contains(") and expression.endswith(")"):
         inner = expression[len("contains(") : -1]
         arguments = _split_expression(inner, ",")
