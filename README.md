@@ -83,7 +83,37 @@ sim-api user di38qex
 ```
 
 Use `--help` to inspect all options. The CLI respects `--netrc` and `--no-netrc` if you need to
-control authentication explicitly.
+control authentication explicitly. Responses can be rendered in multiple formats via `--format`
+(`json`, `kv`, `lines`, `delimited`, `table`). Combine them with `--fields` (JMESPath expressions),
+`--sep` for custom separators and `--no-header` to suppress headers for delimited outputs.
+
+```bash
+# Default JSON output
+sim-api institution 0000000000E4EE4B --format json | jq '.anschriften[0].ort'
+
+# Pick specific fields in a delimited export
+sim-api institution 0000000000E4EE4B \
+  --format delimited --sep '\t' \
+  --fields lrz_id,name,bezeichnung,status \
+| tee /tmp/inst.tsv
+
+# Aligned table output for humans
+sim-api institution 0000000000E4EE4B \
+  --format table \
+  --fields lrz_id,name,bezeichnung,status
+
+# Extract nested address fields without a header
+sim-api institution 0000000000E4EE4B \
+  --format delimited --sep '\t' --no-header \
+  --fields anschriften[0].strasse,anschriften[0].plz,anschriften[0].ort,anschriften[0].land
+
+# Stream identifiers line by line for shell pipelines
+sim-api groups AI --format lines \
+| xargs -n1 -I{} sim-api group-info {} --format delimited --sep '\t' --fields id,owner,count
+
+# Keep compatibility with existing consumers expecting key=value pairs
+sim-api institution 0000000000E4EE4B --format kv | grep '^status='
+```
 
 ## Extending the client
 
