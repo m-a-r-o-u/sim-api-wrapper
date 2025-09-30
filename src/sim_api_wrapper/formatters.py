@@ -5,16 +5,83 @@ from __future__ import annotations
 import csv
 import io
 import json
+from functools import lru_cache
 from typing import Any, Iterable, Sequence
 
 
+def _split_expression(spec: str, delimiter: str) -> list[str]:
+    parts: list[str] = []
+    current: list[str] = []
+    bracket_depth = 0
+    paren_depth = 0
+    brace_depth = 0
+    in_single_quote = False
+    in_double_quote = False
+    escape_next = False
+
+    for char in spec:
+        if escape_next:
+            current.append(char)
+            escape_next = False
+            continue
+
+        if char == "\\" and (in_single_quote or in_double_quote):
+            current.append(char)
+            escape_next = True
+            continue
+
+        if char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+            current.append(char)
+            continue
+
+        if char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+            current.append(char)
+            continue
+
+        if not in_single_quote and not in_double_quote:
+            if char == "[":
+                bracket_depth += 1
+            elif char == "]" and bracket_depth:
+                bracket_depth -= 1
+            elif char == "(":
+                paren_depth += 1
+            elif char == ")" and paren_depth:
+                paren_depth -= 1
+            elif char == "{":
+                brace_depth += 1
+            elif char == "}" and brace_depth:
+                brace_depth -= 1
+
+            if (
+                char == delimiter
+                and bracket_depth == 0
+                and paren_depth == 0
+                and brace_depth == 0
+            ):
+                parts.append("".join(current))
+                current = []
+                continue
+
+        current.append(char)
+
+    parts.append("".join(current))
+    return parts
+
+
 def parse_fields(spec: str | None) -> list[str] | None:
-    """Parse a comma separated list of field expressions."""
+    """Parse a comma separated list of field expressions.
+
+    The parser keeps commas that are enclosed within brackets, braces, parentheses
+    or string literals so complex JMESPath-like expressions remain intact.
+    """
 
     if spec is None:
         return None
-    fields = [field.strip() for field in spec.split(",")]
-    cleaned = [field for field in fields if field]
+
+    parts = _split_expression(spec, ",")
+    cleaned = [part.strip() for part in parts if part.strip()]
     return cleaned or None
 
 
@@ -180,64 +247,176 @@ def _as_items(data: Any) -> Iterable[Any]:
 def _evaluate_field(item: Any, expression: str) -> Any:
     if expression == ".":
         return item
-    tokens = _tokenize(expression)
+    stages = _split_expression(expression, "|")
     current = item
-    for token in tokens:
-        if current is None:
-            return None
-        if isinstance(token, str):
-            if isinstance(current, dict):
-                current = current.get(token)
-            else:
-                return None
-        else:
-            if isinstance(current, list) and -len(current) <= token < len(current):
-                current = current[token]
-            else:
-                return None
+    for stage in stages:
+        stage = stage.strip()
+        if not stage:
+            continue
+        tokens = _compile_stage(stage)
+        current = _evaluate_tokens(current, tokens)
     return current
 
 
-def _tokenize(expression: str) -> list[Any]:
-    if not expression:
-        raise ValueError("Field expression cannot be empty")
-
-    tokens: list[Any] = []
-    remainder = expression
+@lru_cache(maxsize=256)
+def _compile_stage(stage: str) -> list[tuple[str, Any]]:
+    tokens: list[tuple[str, Any]] = []
+    remainder = stage
     while remainder:
         if remainder[0] == "[":
-            close = remainder.find("]")
+            close = _find_closing(remainder, "[", "]")
             if close == -1:
-                raise ValueError(f"Missing closing bracket in expression '{expression}'")
-            index_str = remainder[1:close]
-            if not index_str:
-                raise ValueError(f"Empty index in expression '{expression}'")
-            try:
-                index = int(index_str)
-            except ValueError as exc:  # pragma: no cover - defensive
-                raise ValueError(f"Invalid list index '{index_str}' in expression '{expression}'") from exc
-            tokens.append(index)
+                raise ValueError(f"Missing closing bracket in expression '{stage}'")
+            content = remainder[1:close].strip()
+            if not content:
+                tokens.append(("all", None))
+            elif content.startswith("?"):
+                tokens.append(("filter", content[1:].strip()))
+            else:
+                try:
+                    tokens.append(("index", int(content)))
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Invalid list index '{content}' in expression '{stage}'"
+                    ) from exc
             remainder = remainder[close + 1 :]
             if remainder.startswith("."):
                 remainder = remainder[1:]
+            continue
+
+        next_dot = remainder.find(".")
+        next_bracket = remainder.find("[")
+        if next_dot == -1 and next_bracket == -1:
+            token = remainder.strip()
+            remainder = ""
+        elif next_bracket == -1 or (next_dot != -1 and next_dot < next_bracket):
+            token = remainder[:next_dot]
+            remainder = remainder[next_dot + 1 :]
         else:
-            next_dot = remainder.find(".")
-            next_bracket = remainder.find("[")
-            end_index: int
-            if next_dot == -1 and next_bracket == -1:
-                end_index = len(remainder)
-            elif next_bracket == -1 or (next_dot != -1 and next_dot < next_bracket):
-                end_index = next_dot
-            else:
-                end_index = next_bracket
-            token = remainder[:end_index]
-            if not token:
-                raise ValueError(f"Empty token in expression '{expression}'")
-            tokens.append(token)
-            remainder = remainder[end_index:]
-            if remainder.startswith("."):
-                remainder = remainder[1:]
+            token = remainder[:next_bracket]
+            remainder = remainder[next_bracket:]
+        token = token.strip()
+        if token:
+            tokens.append(("field", token))
     return tokens
+
+
+def _evaluate_tokens(value: Any, tokens: Sequence[tuple[str, Any]]) -> Any:
+    current = value
+    for kind, payload in tokens:
+        if current is None:
+            return None
+        if kind == "field":
+            current = _apply_field(current, payload)
+        elif kind == "index":
+            current = _apply_index(current, payload)
+        elif kind == "all":
+            current = _apply_all(current)
+        elif kind == "filter":
+            current = _apply_filter(current, payload)
+        else:  # pragma: no cover - defensive programming
+            raise ValueError(f"Unsupported token '{kind}' in expression")
+    return current
+
+
+def _apply_field(value: Any, name: str) -> Any:
+    if isinstance(value, list):
+        results = []
+        for element in value:
+            resolved = _apply_field(element, name)
+            if isinstance(resolved, list):
+                results.extend(resolved)
+            elif resolved is not None:
+                results.append(resolved)
+        return results
+    if isinstance(value, dict):
+        return value.get(name)
+    return None
+
+
+def _apply_index(value: Any, index: int) -> Any:
+    if isinstance(value, list) and -len(value) <= index < len(value):
+        return value[index]
+    return None
+
+
+def _apply_all(value: Any) -> Any:
+    if isinstance(value, list):
+        flattened: list[Any] = []
+        for element in value:
+            if isinstance(element, list):
+                flattened.extend(element)
+            else:
+                flattened.append(element)
+        return flattened
+    return value
+
+
+def _apply_filter(value: Any, expression: str) -> Any:
+    if not isinstance(value, list):
+        return None
+    return [item for item in value if _matches_filter(item, expression)]
+
+
+def _matches_filter(item: Any, expression: str) -> bool:
+    expression = expression.strip()
+    if expression.startswith("contains(") and expression.endswith(")"):
+        inner = expression[len("contains(") : -1]
+        arguments = _split_expression(inner, ",")
+        if len(arguments) != 2:
+            raise ValueError(f"Invalid contains() call: '{expression}'")
+        target_expr = arguments[0].strip()
+        needle = _strip_quotes(arguments[1].strip())
+        haystack = _evaluate_tokens(item, _compile_stage(target_expr))
+        if isinstance(haystack, list):
+            return any(_needle_in_value(needle, value) for value in haystack)
+        return _needle_in_value(needle, haystack)
+    raise ValueError(f"Unsupported filter expression '{expression}'")
+
+
+def _needle_in_value(needle: str, value: Any) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, list):
+        return any(_needle_in_value(needle, element) for element in value)
+    return needle in str(value)
+
+
+def _find_closing(text: str, opening: str, closing: str) -> int:
+    depth = 0
+    in_single_quote = False
+    in_double_quote = False
+    escape_next = False
+    for index, char in enumerate(text):
+        if escape_next:
+            escape_next = False
+            continue
+        if char == "\\" and (in_single_quote or in_double_quote):
+            escape_next = True
+            continue
+        if char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+            continue
+        if char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+            continue
+        if in_single_quote or in_double_quote:
+            continue
+        if char == opening:
+            depth += 1
+        elif char == closing:
+            depth -= 1
+            if depth == 0:
+                return index
+    return -1
+
+
+def _strip_quotes(value: str) -> str:
+    if (value.startswith("'") and value.endswith("'")) or (
+        value.startswith('"') and value.endswith('"')
+    ):
+        return value[1:-1]
+    return value
 
 
 def _flatten(values: Iterable[Any]) -> Iterable[Any]:

@@ -40,6 +40,14 @@ def test_parse_fields_splits_and_trims() -> None:
     assert parse_fields(" ") is None
 
 
+def test_parse_fields_respects_nested_commas() -> None:
+    spec = "foo, daten.emailadressen[?contains(typ,'haupt,email')].adresse | [0]"
+    assert parse_fields(spec) == [
+        "foo",
+        "daten.emailadressen[?contains(typ,'haupt,email')].adresse | [0]",
+    ]
+
+
 def test_emit_json_preserves_structure(sample_dict: dict[str, object]) -> None:
     rendered = emit_json(sample_dict)
     assert json.loads(rendered) == sample_dict
@@ -64,6 +72,20 @@ def test_emit_lines_from_list() -> None:
 def test_emit_lines_with_field_flattening(sample_dict: dict[str, object]) -> None:
     rendered = emit_lines(sample_dict, fields=["numbers"])
     assert rendered.splitlines() == ["1", "2", "3"]
+
+
+def test_emit_lines_supports_jmespath_filters() -> None:
+    payload = {
+        "daten": {
+            "emailadressen": [
+                {"typ": "hauptemail", "adresse": "main@example.org"},
+                {"typ": "zweitemail", "adresse": "alt@example.org"},
+            ]
+        }
+    }
+    expression = "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"
+    rendered = emit_lines(payload, fields=[expression])
+    assert rendered.splitlines() == ["main@example.org"]
 
 
 def test_emit_delimited_with_header(sample_list: list[dict[str, object]]) -> None:

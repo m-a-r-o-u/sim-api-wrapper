@@ -87,6 +87,22 @@ control authentication explicitly. Responses can be rendered in multiple formats
 (`json`, `kv`, `lines`, `delimited`, `table`). Combine them with `--fields` (JMESPath expressions),
 `--sep` for custom separators and `--no-header` to suppress headers for delimited outputs.
 
+#### Selecting fields with JMESPath-like expressions
+
+The `--fields` option understands a JMESPath-inspired syntax, so you can use filters, projections
+and pipes to extract exactly the values you care about. The parser keeps commas inside parentheses
+or string literals intact, making it safe to pass complex expressions without additional quoting.
+
+- Access nested properties: `--fields daten.emailadressen[0].adresse`
+- Apply string filters via `contains`: `--fields "daten.emailadressen[?contains(typ,'hauptemail')]"`
+- Chain projections with the pipe operator: `--fields "daten.emailadressen[].adresse | [0]"`
+- Reduce to a single value in streaming output: `--format lines --fields "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"`
+- Extract multiple unrelated values at once: `--fields "daten.adressen[].ort, rollen[?contains(status,'aktiv')].kennung"`
+
+Need a refresher? The [JMESPath tutorial](https://jmespath.org/tutorial.html) explains the full
+syntax in depth, and while the CLI implements the most commonly used parts today, the examples are a
+great source of inspiration for constructing practical selectors.
+
 ```bash
 # Default JSON output
 sim-api institution 0000000000E4EE4B --format json | jq '.anschriften[0].ort'
@@ -106,6 +122,16 @@ sim-api institution 0000000000E4EE4B \
 sim-api institution 0000000000E4EE4B \
   --format delimited --sep '\t' --no-header \
   --fields anschriften[0].strasse,anschriften[0].plz,anschriften[0].ort,anschriften[0].land
+
+# Filter and project using JMESPath and return the first match as a single line
+sim-api user di38qex \
+  --format lines \
+  --fields "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"
+
+# Combine multiple JMESPath expressions when exporting CSV
+sim-api user di38qex \
+  --format delimited --sep ';' \
+  --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0],rollen[?status=='aktiv'].bezeichnung"
 
 # Stream identifiers line by line for shell pipelines
 sim-api groups AI --format lines \
