@@ -88,6 +88,22 @@ def test_emit_lines_supports_jmespath_filters() -> None:
     assert rendered.splitlines() == ["main@example.org"]
 
 
+def test_emit_lines_supports_filter_or_conditions() -> None:
+    payload = {
+        "daten": {
+            "emailadressen": [
+                {"typ": "kontaktemail", "adresse": "contact@example.org"},
+                {"typ": "zweitemail", "adresse": "alt@example.org"},
+            ]
+        }
+    }
+    expression = (
+        "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"
+    )
+    rendered = emit_lines(payload, fields=[expression])
+    assert rendered.splitlines() == ["contact@example.org"]
+
+
 def test_emit_delimited_with_header(sample_list: list[dict[str, object]]) -> None:
     rendered = emit_delimited(sample_list, fields=["name", "numbers", "nested.value"])
     reader = csv.reader(io.StringIO(rendered))
