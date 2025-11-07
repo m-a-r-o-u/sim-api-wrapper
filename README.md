@@ -54,17 +54,29 @@ need attention.
 from sim_api_wrapper import SimApiClient
 
 with SimApiClient() as client:
+    environment = client.get_environment()
     groups = client.list_groups("AI")
-    members = client.get_group_members("pn69ju-ai-c")
+    members = client.get_group_members("AI", "pn69ju-ai-c")
     links = client.get_project_institution_links("pn69ju")
     institution = client.get_institution("0000000000E4EE4B")
+    permissions = client.get_user_permissions("di38qex")
     person = client.get_person("00000000001F17E0")
     user = client.get_user("di38qex")
 
+print(environment)
 print(groups)
 print(members)
+print(permissions)
 print(institution)
 ```
+
+Common lookups now have dedicated helpers:
+
+- `get_environment()` – inspect the SIM backend state, including quota summaries.
+- `get_service_characteristics(service)` – read the LDAP attributes for a service root group.
+- `get_group_members(service, group_name, solve=False)` – enumerate direct (or resolved) group members.
+- `get_user_permissions(username)` – expand all permission grants for a SIM identity.
+- `list_exchange_distributions()` / `get_exchange_distribution(name)` – explore Exchange distribution lists.
 
 Each method returns either a native Python type (such as a list of strings) or a dataclass with
 structured access to the response payload.
@@ -75,11 +87,18 @@ A small CLI is bundled for quick lookups:
 
 ```bash
 sim-api groups AI
-sim-api group-members pn69ju-ai-c
+sim-api group-members AI pn69ju-ai-c
+sim-api group-info AI pn69ju-ai-c
+sim-api group-rights AI pn69ju-ai-c di38qex
 sim-api project-institution pn69ju
 sim-api institution 0000000000E4EE4B
 sim-api person 00000000001F17E0
 sim-api user di38qex
+sim-api environment
+sim-api current-user
+sim-api permissions-metadata
+sim-api user-services di38qex
+sim-api exchange-distributions
 ```
 
 Use `--help` to inspect all options. The CLI respects `--netrc` and `--no-netrc` if you need to

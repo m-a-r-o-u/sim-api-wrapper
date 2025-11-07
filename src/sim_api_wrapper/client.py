@@ -86,6 +86,58 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         self.close()
 
     # -- public API methods -------------------------------------------------------
+    def get_environment(self) -> Dict[str, Any]:
+        """Return diagnostic information about the SIM backend environment."""
+
+        data = self._request_json("GET", "/umgebung")
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for environment endpoint")
+
+    def get_current_user(self) -> Dict[str, Any]:
+        """Return information about the currently authenticated SIM identity."""
+
+        data = self._request_json("GET", "/whoami")
+        if isinstance(data, dict) and data.get("kennung"):
+            return data
+        raise SimApiError("Unexpected response payload for whoami endpoint")
+
+    def get_service_characteristics(self, service: str) -> Dict[str, Any]:
+        """Return group-related characteristics for the specified service."""
+
+        endpoint = f"/service/{service}/egh"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for service characteristics endpoint")
+
+    def get_group_rights(self, service: str, group_name: str, username: str) -> Dict[str, Any]:
+        """Return the rights metadata for a user within a given group."""
+
+        endpoint = f"/service/{service}/group/{group_name}/user/{username}/grprights"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for group rights endpoint")
+
+    def get_permissions_metadata(self) -> Dict[str, Any]:
+        """Return metadata describing all available SIM permissions."""
+
+        payload = self._request_json("GET", "/permissions")
+        data = self._parse_wrapped_data(payload, expect_single=True)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for permissions metadata endpoint")
+
+    def get_user_permissions(self, username: str) -> Dict[str, Any]:
+        """Return the resolved permissions for the specified user."""
+
+        payload = self._request_json("GET", f"/permissions/{username}")
+        data = self._parse_wrapped_data(payload, expect_single=True)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for user permissions endpoint")
+
     def list_groups(self, service: str) -> List[str]:
         """Return all available project groups for the given service."""
 
@@ -95,15 +147,60 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
             return [str(item) for item in data]
         raise SimApiError("Unexpected response payload for groups endpoint")
 
-    def get_group_members(self, group_name: str, *, solve: bool = False) -> List[str]:
-        """Return the usernames assigned to the specified group."""
+    def get_group_members(self, service: str, group_name: str, *, solve: bool = False) -> List[str]:
+        """Return the usernames assigned to the specified group for a service."""
 
-        endpoint = f"/service/AI/groups/{group_name}/members"
+        endpoint = f"/service/{service}/groups/{group_name}/members"
         params = {"solve": "true" if solve else "false"}
         data = self._request_json("GET", endpoint, params=params)
         if isinstance(data, list):
             return [str(item) for item in data]
         raise SimApiError("Unexpected response payload for group members endpoint")
+
+    def get_group_admins(self, service: str, group_name: str) -> List[str]:
+        """Return the administrators assigned to the specified group."""
+
+        endpoint = f"/service/{service}/groups/{group_name}/grpadmins"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, list):
+            return [str(item) for item in data]
+        raise SimApiError("Unexpected response payload for group admins endpoint")
+
+    def get_group_details(self, service: str, group_name: str) -> Dict[str, Any]:
+        """Return metadata about a specific group within a service."""
+
+        endpoint = f"/service/{service}/group/{group_name}"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for group details endpoint")
+
+    def is_group_member(self, service: str, group_name: str, username: str) -> bool:
+        """Return whether the given user is a member of the specified group."""
+
+        endpoint = f"/service/{service}/group/{group_name}/members/{username}"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, bool):
+            return data
+        raise SimApiError("Unexpected response payload for group membership endpoint")
+
+    def is_group_master_user(self, service: str, group_name: str, username: str) -> bool:
+        """Return whether the given user is a master user of the specified group."""
+
+        endpoint = f"/service/{service}/group/{group_name}/masteruser/{username}"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, bool):
+            return data
+        raise SimApiError("Unexpected response payload for group master user endpoint")
+
+    def is_group_admin(self, service: str, group_name: str, username: str) -> bool:
+        """Return whether the given user is an administrator of the specified group."""
+
+        endpoint = f"/service/{service}/group/{group_name}/grpadmin/{username}"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, bool):
+            return data
+        raise SimApiError("Unexpected response payload for group admin endpoint")
 
     def get_project_institution_links(self, project_name: str) -> List[ProjectInstitutionLink]:
         """Return institution links for the given project name."""
@@ -123,6 +220,24 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         data = self._parse_wrapped_data(payload, expect_single=True)
         return Institution.from_dict(data)
 
+    def list_org_projects(self, org: str) -> List[str]:
+        """Return the projects that belong to the specified top-level organisation."""
+
+        payload = self._request_json("GET", f"/org/{org}/projects")
+        entries = self._parse_wrapped_data(payload)
+        if isinstance(entries, list):
+            return [str(item) for item in entries]
+        raise SimApiError("Unexpected response payload for organisation projects endpoint")
+
+    def get_org_project_details(self, org: str, project: str) -> Dict[str, Any]:
+        """Return detailed information for a project belonging to an organisation."""
+
+        payload = self._request_json("GET", f"/org/{org}/project/{project}")
+        data = self._parse_wrapped_data(payload, expect_single=True)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for organisation project details endpoint")
+
     def get_person(self, person_id: str) -> Person:
         """Fetch information about a person via their LRZ identifier."""
 
@@ -137,6 +252,137 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         if isinstance(data, dict):
             return User.from_dict(data)
         raise SimApiError("Unexpected response payload for user endpoint")
+
+    def get_project_master_users(self, project: str) -> List[str]:
+        """Return master user identifiers for the specified project."""
+
+        endpoint = f"/project/{project}/mudusers"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, list):
+            return [str(item) for item in data]
+        raise SimApiError("Unexpected response payload for project master users endpoint")
+
+    def list_service_projects(self, service: str) -> List[Dict[str, Any]]:
+        """Return projects that currently have a quota for the specified service."""
+
+        endpoint = f"/project/service/{service}"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, list) and all(isinstance(item, dict) for item in data):
+            return [dict(item) for item in data]
+        raise SimApiError("Unexpected response payload for service projects endpoint")
+
+    def list_org_types(self) -> List[str]:
+        """Return all available organisation types."""
+
+        payload = self._request_json("GET", "/auswahlliste/orgtypes")
+        entries = self._parse_wrapped_data(payload)
+        if isinstance(entries, list):
+            return [str(item) for item in entries]
+        raise SimApiError("Unexpected response payload for organisation types endpoint")
+
+    def get_vweb_user(self, username: str) -> Dict[str, Any]:
+        """Return vWEB service information for the specified user."""
+
+        payload = self._request_json("GET", f"/service/vweb/user/{username}/vwebserver")
+        data = self._parse_wrapped_data(payload, expect_single=True)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for vweb user endpoint")
+
+    def list_personal_homepages(self) -> Dict[str, Any]:
+        """Return all personal homepages registered in SIM."""
+
+        data = self._request_json("GET", "/persHomepage")
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for personal homepages endpoint")
+
+    def is_service_admin(self, service: str, username: str) -> bool:
+        """Return whether the given user is a service administrator."""
+
+        endpoint = f"/service/{service}/serviceadmin/{username}"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, bool):
+            return data
+        raise SimApiError("Unexpected response payload for service admin endpoint")
+
+    def list_managed_groups(self, service: str, username: str) -> List[str]:
+        """Return the groups the user can manage for the specified service."""
+
+        endpoint = f"/service/{service}/user/{username}/managedgroups"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, list):
+            return [str(item) for item in data]
+        raise SimApiError("Unexpected response payload for managed groups endpoint")
+
+    def list_group_memberships(self, service: str, username: str) -> List[str]:
+        """Return the groups the user is a member of for the specified service."""
+
+        endpoint = f"/service/{service}/user/{username}/groupmembership"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, list):
+            return [str(item) for item in data]
+        raise SimApiError("Unexpected response payload for group membership list endpoint")
+
+    def list_user_services(self, username: str) -> List[Dict[str, Any]]:
+        """Return the services associated with the specified user."""
+
+        data = self._request_json("GET", f"/user/{username}/services")
+        if isinstance(data, list) and all(isinstance(item, dict) for item in data):
+            return [dict(item) for item in data]
+        raise SimApiError("Unexpected response payload for user services endpoint")
+
+    def get_password_metadata(self) -> Dict[str, Any]:
+        """Return password policy metadata for the SIM platform."""
+
+        data = self._request_json("GET", "/pwd")
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for password metadata endpoint")
+
+    def get_user_password_metadata(self, username: str) -> Dict[str, Any]:
+        """Return password-related metadata for the specified user."""
+
+        payload = self._request_json("GET", f"/user/{username}/pwd")
+        data = self._parse_wrapped_data(payload, expect_single=True)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for user password metadata endpoint")
+
+    def is_password_pwned(self, username: str) -> bool:
+        """Return whether the specified user's password is known to be compromised."""
+
+        payload = self._request_json("GET", f"/user/{username}/pwned")
+        data = self._parse_wrapped_data(payload, expect_single=True)
+        if isinstance(data, dict) and "pwned" in data:
+            return bool(data["pwned"])
+        raise SimApiError("Unexpected response payload for password breach endpoint")
+
+    def list_exchange_distributions(self) -> List[str]:
+        """Return all Exchange distribution lists."""
+
+        data = self._request_json("GET", "/v2/verteiler")
+        if isinstance(data, list):
+            return [str(item) for item in data]
+        raise SimApiError("Unexpected response payload for Exchange distributions endpoint")
+
+    def get_exchange_distribution(self, list_name: str) -> Dict[str, Any]:
+        """Return details for a specific Exchange distribution list."""
+
+        endpoint = f"/v2/verteiler/{list_name}"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, dict):
+            return data
+        raise SimApiError("Unexpected response payload for Exchange distribution details endpoint")
+
+    def get_exchange_distribution_admins(self, list_name: str) -> List[str]:
+        """Return the Exchange administrators for the specified distribution list."""
+
+        endpoint = f"/v2/verteiler/{list_name}/exchangeadmin"
+        data = self._request_json("GET", endpoint)
+        if isinstance(data, list):
+            return [str(item) for item in data]
+        raise SimApiError("Unexpected response payload for Exchange distribution admins endpoint")
 
     # -- internal helpers ---------------------------------------------------------
     def close(self) -> None:
