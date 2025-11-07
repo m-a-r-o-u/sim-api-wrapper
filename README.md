@@ -86,19 +86,58 @@ structured access to the response payload.
 A small CLI is bundled for quick lookups:
 
 ```bash
+# General information
+sim-api environment
+sim-api current-user
+sim-api service-characteristics AI
+
+# Group exploration
 sim-api groups AI
-sim-api group-members AI pn69ju-ai-c
 sim-api group-info AI pn69ju-ai-c
+sim-api group-members AI pn69ju-ai-c
+sim-api group-members AI pn69ju-ai-c --solve
+sim-api group-admins AI pn69ju-ai-c
 sim-api group-rights AI pn69ju-ai-c di38qex
+
+# Membership checks
+sim-api is-group-member AI pn69ju-ai-c di38qex
+sim-api is-group-master AI pn69ju-ai-c di38qex
+sim-api is-group-admin AI pn69ju-ai-c di38qex
+sim-api project-master-users pn69ju
+
+# Service-centric lookups
+sim-api service-projects AI
+sim-api managed-groups AI di38qex
+sim-api group-memberships AI di38qex
+sim-api user-services di38qex
+sim-api is-service-admin AI di38qex
+
+# Organisation data
+sim-api org-projects TUM
+sim-api org-project-details TUM uk431
+sim-api org-types
+
+# Account metadata
+sim-api permissions-metadata
+sim-api user-permissions di38qex
+sim-api vweb-user di38qex
+sim-api personal-homepages
+
+# Password tooling
+sim-api password-metadata
+sim-api user-password di38qex
+sim-api is-password-pwned di38qex
+
+# Exchange distributions
+sim-api exchange-distributions
+sim-api exchange-distribution AI-announce
+sim-api exchange-admins AI-announce
+
+# Institutions and identities
 sim-api project-institution pn69ju
 sim-api institution 0000000000E4EE4B
 sim-api person 00000000001F17E0
 sim-api user di38qex
-sim-api environment
-sim-api current-user
-sim-api permissions-metadata
-sim-api user-services di38qex
-sim-api exchange-distributions
 ```
 
 Use `--help` to inspect all options. The CLI respects `--netrc` and `--no-netrc` if you need to
