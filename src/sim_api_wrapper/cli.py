@@ -79,16 +79,162 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     parser = argparse.ArgumentParser(description="Interact with the LRZ SIM API.", parents=[common])
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    subparsers.add_parser("environment", help="Show SIM backend environment information.")
+
+    subparsers.add_parser("current-user", help="Show the currently authenticated SIM identity.")
+
+    characteristics = subparsers.add_parser(
+        "service-characteristics",
+        help="Display service-specific group characteristics.",
+    )
+    characteristics.add_argument("service", help="Service identifier, e.g. AI.")
+
     groups = subparsers.add_parser("groups", help="List all available project groups.")
     groups.add_argument("service", help="Service identifier, e.g. AI.")
 
     members = subparsers.add_parser("group-members", help="List members of a project group.")
+    members.add_argument("service", help="Service identifier, e.g. AI.")
     members.add_argument("group_name", help="Name of the group to inspect.")
     members.add_argument(
         "--solve",
         action="store_true",
         help="Resolve nested group memberships via the 'solve' query parameter.",
     )
+
+    admins = subparsers.add_parser("group-admins", help="List administrators of a project group.")
+    admins.add_argument("service", help="Service identifier, e.g. AI.")
+    admins.add_argument("group_name", help="Name of the group to inspect.")
+
+    group_info = subparsers.add_parser("group-info", help="Show metadata for a project group.")
+    group_info.add_argument("service", help="Service identifier, e.g. AI.")
+    group_info.add_argument("group_name", help="Name of the group to inspect.")
+
+    group_rights = subparsers.add_parser(
+        "group-rights",
+        help="Show resolved rights for a user within a project group.",
+    )
+    group_rights.add_argument("service", help="Service identifier, e.g. AI.")
+    group_rights.add_argument("group_name", help="Name of the group to inspect.")
+    group_rights.add_argument("username", help="SIM username / Kennung.")
+
+    subparsers.add_parser("permissions-metadata", help="Show platform-wide permissions metadata.")
+
+    user_permissions = subparsers.add_parser(
+        "user-permissions",
+        help="Show resolved permissions for a user.",
+    )
+    user_permissions.add_argument("username", help="SIM username / Kennung.")
+
+    check_member = subparsers.add_parser(
+        "is-group-member",
+        help="Check if a user is member of a project group.",
+    )
+    check_member.add_argument("service", help="Service identifier, e.g. AI.")
+    check_member.add_argument("group_name", help="Name of the group to inspect.")
+    check_member.add_argument("username", help="SIM username / Kennung.")
+
+    check_master = subparsers.add_parser(
+        "is-group-master",
+        help="Check if a user is a master user of a project group.",
+    )
+    check_master.add_argument("service", help="Service identifier, e.g. AI.")
+    check_master.add_argument("group_name", help="Name of the group to inspect.")
+    check_master.add_argument("username", help="SIM username / Kennung.")
+
+    check_admin = subparsers.add_parser(
+        "is-group-admin",
+        help="Check if a user administers a project group.",
+    )
+    check_admin.add_argument("service", help="Service identifier, e.g. AI.")
+    check_admin.add_argument("group_name", help="Name of the group to inspect.")
+    check_admin.add_argument("username", help="SIM username / Kennung.")
+
+    master_users = subparsers.add_parser(
+        "project-master-users",
+        help="List master user identifiers for a project.",
+    )
+    master_users.add_argument("project", help="Project identifier, e.g. pn69ju.")
+
+    service_projects = subparsers.add_parser(
+        "service-projects",
+        help="List projects that currently have a quota for a service.",
+    )
+    service_projects.add_argument("service", help="Service identifier, e.g. AI.")
+
+    org_projects = subparsers.add_parser(
+        "org-projects",
+        help="List projects associated with a top-level organisation.",
+    )
+    org_projects.add_argument("organisation", help="Organisation identifier, e.g. TUM.")
+
+    org_project_details = subparsers.add_parser(
+        "org-project-details",
+        help="Show details for an organisation project.",
+    )
+    org_project_details.add_argument("organisation", help="Organisation identifier, e.g. TUM.")
+    org_project_details.add_argument("project", help="Project identifier, e.g. uk431.")
+
+    subparsers.add_parser("org-types", help="List all available organisation types.")
+
+    vweb = subparsers.add_parser("vweb-user", help="Show vWEB details for a user.")
+    vweb.add_argument("username", help="SIM username / Kennung.")
+
+    subparsers.add_parser("personal-homepages", help="List personal homepages registered in SIM.")
+
+    service_admin = subparsers.add_parser(
+        "is-service-admin",
+        help="Check if a user administers a service.",
+    )
+    service_admin.add_argument("service", help="Service identifier, e.g. AI.")
+    service_admin.add_argument("username", help="SIM username / Kennung.")
+
+    managed_groups = subparsers.add_parser(
+        "managed-groups",
+        help="List groups a user can manage for a service.",
+    )
+    managed_groups.add_argument("service", help="Service identifier, e.g. AI.")
+    managed_groups.add_argument("username", help="SIM username / Kennung.")
+
+    memberships = subparsers.add_parser(
+        "group-memberships",
+        help="List groups a user belongs to for a service.",
+    )
+    memberships.add_argument("service", help="Service identifier, e.g. AI.")
+    memberships.add_argument("username", help="SIM username / Kennung.")
+
+    user_services = subparsers.add_parser(
+        "user-services",
+        help="List services associated with a user.",
+    )
+    user_services.add_argument("username", help="SIM username / Kennung.")
+
+    subparsers.add_parser("password-metadata", help="Show SIM-wide password policy metadata.")
+
+    user_password = subparsers.add_parser(
+        "user-password",
+        help="Show password metadata for a user.",
+    )
+    user_password.add_argument("username", help="SIM username / Kennung.")
+
+    password_pwned = subparsers.add_parser(
+        "is-password-pwned",
+        help="Check if a user's password is known to be compromised.",
+    )
+    password_pwned.add_argument("username", help="SIM username / Kennung.")
+
+    subparsers.add_parser("exchange-distributions", help="List all Exchange distributions.")
+
+    exchange_distribution = subparsers.add_parser(
+        "exchange-distribution",
+        help="Show details for an Exchange distribution.",
+    )
+    exchange_distribution.add_argument("list_name", help="Distribution list identifier.")
+
+    exchange_admins = subparsers.add_parser(
+        "exchange-admins",
+        help="List Exchange administrators for a distribution.",
+    )
+    exchange_admins.add_argument("list_name", help="Distribution list identifier.")
 
     project = subparsers.add_parser("project-institution", help="Resolve institution links for a project.")
     project.add_argument("project_name", help="Project identifier, e.g. pn69ju.")
@@ -117,10 +263,66 @@ def main(argv: list[str] | None = None) -> int:
         timeout=args.timeout,
         use_netrc=not args.no_netrc,
     ) as client:
-        if args.command == "groups":
+        if args.command == "environment":
+            result = client.get_environment()
+        elif args.command == "current-user":
+            result = client.get_current_user()
+        elif args.command == "service-characteristics":
+            result = client.get_service_characteristics(args.service)
+        elif args.command == "groups":
             result = client.list_groups(args.service)
         elif args.command == "group-members":
-            result = client.get_group_members(args.group_name, solve=args.solve)
+            result = client.get_group_members(args.service, args.group_name, solve=args.solve)
+        elif args.command == "group-admins":
+            result = client.get_group_admins(args.service, args.group_name)
+        elif args.command == "group-info":
+            result = client.get_group_details(args.service, args.group_name)
+        elif args.command == "group-rights":
+            result = client.get_group_rights(args.service, args.group_name, args.username)
+        elif args.command == "permissions-metadata":
+            result = client.get_permissions_metadata()
+        elif args.command == "user-permissions":
+            result = client.get_user_permissions(args.username)
+        elif args.command == "is-group-member":
+            result = client.is_group_member(args.service, args.group_name, args.username)
+        elif args.command == "is-group-master":
+            result = client.is_group_master_user(args.service, args.group_name, args.username)
+        elif args.command == "is-group-admin":
+            result = client.is_group_admin(args.service, args.group_name, args.username)
+        elif args.command == "project-master-users":
+            result = client.get_project_master_users(args.project)
+        elif args.command == "service-projects":
+            result = client.list_service_projects(args.service)
+        elif args.command == "org-projects":
+            result = client.list_org_projects(args.organisation)
+        elif args.command == "org-project-details":
+            result = client.get_org_project_details(args.organisation, args.project)
+        elif args.command == "org-types":
+            result = client.list_org_types()
+        elif args.command == "vweb-user":
+            result = client.get_vweb_user(args.username)
+        elif args.command == "personal-homepages":
+            result = client.list_personal_homepages()
+        elif args.command == "is-service-admin":
+            result = client.is_service_admin(args.service, args.username)
+        elif args.command == "managed-groups":
+            result = client.list_managed_groups(args.service, args.username)
+        elif args.command == "group-memberships":
+            result = client.list_group_memberships(args.service, args.username)
+        elif args.command == "user-services":
+            result = client.list_user_services(args.username)
+        elif args.command == "password-metadata":
+            result = client.get_password_metadata()
+        elif args.command == "user-password":
+            result = client.get_user_password_metadata(args.username)
+        elif args.command == "is-password-pwned":
+            result = client.is_password_pwned(args.username)
+        elif args.command == "exchange-distributions":
+            result = client.list_exchange_distributions()
+        elif args.command == "exchange-distribution":
+            result = client.get_exchange_distribution(args.list_name)
+        elif args.command == "exchange-admins":
+            result = client.get_exchange_distribution_admins(args.list_name)
         elif args.command == "project-institution":
             result = client.get_project_institution_links(args.project_name)
         elif args.command == "institution":
