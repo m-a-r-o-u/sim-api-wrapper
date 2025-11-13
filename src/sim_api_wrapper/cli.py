@@ -10,14 +10,7 @@ from dataclasses import asdict, is_dataclass
 from typing import Any, Callable
 
 from .client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, SimApiClient
-from .formatters import (
-    emit_delimited,
-    emit_json,
-    emit_kv,
-    emit_lines,
-    emit_table,
-    parse_fields,
-)
+from .formatters import emit_delimited, emit_json, emit_plain, emit_yaml, parse_fields
 
 
 class CustomHelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
@@ -163,26 +156,20 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
 
     common.add_argument(
         "--format",
-        choices=("json", "kv", "lines", "delimited", "table"),
-        default="json",
-        help="Output format for the response (default: %(default)s).",
+        choices=("yaml", "plain", "delimited"),
+        default=None,
+        help="Output format for the response (omit for JSON).",
     )
     common.add_argument(
         "--sep",
         default=",",
-        help="Separator used for delimited and table formats (default: '%(default)s').",
+        help="Separator used when formatting delimited lists (default: '%(default)s').",
     )
     common.add_argument(
         "--fields",
         default=None,
         help="Comma-separated list of fields to include in the output.",
     )
-    common.add_argument(
-        "--no-header",
-        action="store_true",
-        help="Omit header row when using delimited or table formats.",
-    )
-
     common._optionals.title = "Global options"
 
     parser = argparse.ArgumentParser(
@@ -192,7 +179,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
             Examples:
               sim-api environment
               sim-api group-members AI my-group
-              sim-api user --format table --fields username,email
+              sim-api user --format yaml --fields username,email
             """
         ),
         parents=[common],
@@ -531,7 +518,6 @@ def main(argv: list[str] | None = None) -> int:
         payload,
         fields=fields,
         separator=separator,
-        include_header=not args.no_header,
     )
     print(text)
     return 0
@@ -545,13 +531,13 @@ def _prepare_payload(result: Any) -> Any:
     return result
 
 
-def _select_formatter(fmt: str) -> Callable[..., str]:
-    mapping: dict[str, Callable[..., str]] = {
+def _select_formatter(fmt: str | None) -> Callable[..., str]:
+    mapping: dict[str | None, Callable[..., str]] = {
+        None: emit_json,
         "json": emit_json,
-        "kv": emit_kv,
-        "lines": emit_lines,
+        "yaml": emit_yaml,
+        "plain": emit_plain,
         "delimited": emit_delimited,
-        "table": emit_table,
     }
     try:
         return mapping[fmt]

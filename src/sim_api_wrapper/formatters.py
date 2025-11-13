@@ -172,45 +172,45 @@ def emit_json(
     return json.dumps(selected, indent=2, ensure_ascii=False)
 
 
-def emit_kv(
+def emit_yaml(
     data: Any,
     *,
     fields: Sequence[str] | None = None,
     separator: str = ",",
     include_header: bool = True,
 ) -> str:
-    """Render the payload as key=value pairs."""
+    """Render the payload as human-friendly YAML."""
 
     _ = separator, include_header
-    records, field_names = _prepare_records(data, fields)
-    lines: list[str] = []
-    for index, record in enumerate(records):
-        if index and field_names:
-            lines.append("")
-        for field in field_names:
-            value = _stringify(record.get(field))
-            lines.append(f"{field}={value}")
-    return "\n".join(lines)
+    if fields is None:
+        selected = data
+    else:
+        selected = _select_for_json(data, fields)
+    lines = _render_yaml(selected, 0)
+    return "\n".join(lines).rstrip()
 
 
-def emit_lines(
+def emit_plain(
     data: Any,
     *,
     fields: Sequence[str] | None = None,
     separator: str = ",",
     include_header: bool = True,
 ) -> str:
-    """Render the payload with one value per line."""
+    """Render values as plain text with sensible fallbacks."""
 
     _ = separator, include_header
-    values: list[Any]
+
+    if fields is None and isinstance(data, dict):
+        return emit_yaml(data)
+
+    values: list[Any] = []
     if fields is None:
         if isinstance(data, list):
-            values = list(data)
+            values.extend(_flatten(data))
         else:
-            values = [data]
+            values.append(data)
     else:
-        values = []
         for item in _as_items(data):
             for field in fields:
                 resolved = _evaluate_field(item, field)
@@ -218,8 +218,20 @@ def emit_lines(
                     values.extend(_flatten(resolved))
                 elif resolved is not None:
                     values.append(resolved)
-    stringified = [_stringify_line(value) for value in values]
-    return "\n".join(stringified)
+
+    if not values:
+        return ""
+
+    if len(values) == 1 and isinstance(values[0], dict):
+        return emit_yaml(values[0])
+
+    lines: list[str] = []
+    for value in values:
+        if isinstance(value, dict):
+            lines.append(emit_yaml(value))
+        else:
+            lines.append(_stringify_line(value))
+    return "\n".join(lines)
 
 
 def emit_delimited(
@@ -239,34 +251,6 @@ def emit_delimited(
     for record in records:
         writer.writerow([_stringify(record.get(field)) for field in field_names])
     return buffer.getvalue().rstrip("\r\n")
-
-
-def emit_table(
-    data: Any,
-    *,
-    fields: Sequence[str] | None = None,
-    separator: str = ",",
-    include_header: bool = True,
-) -> str:
-    """Render the payload as an aligned table."""
-
-    records, field_names = _prepare_records(data, fields)
-    rows: list[list[str]] = [
-        [_stringify(record.get(field)) for field in field_names]
-        for record in records
-    ]
-    if include_header and field_names:
-        rows.insert(0, list(field_names))
-
-    if not rows:
-        return ""
-
-    widths = [max(len(row[idx]) for row in rows) for idx in range(len(field_names))]
-    lines = []
-    for row in rows:
-        padded = [cell.ljust(widths[idx]) for idx, cell in enumerate(row)]
-        lines.append(separator.join(padded))
-    return "\n".join(lines)
 
 
 def _select_for_json(data: Any, fields: Sequence[str]) -> Any:
@@ -528,12 +512,49 @@ def _stringify_line(value: Any) -> str:
     return str(value)
 
 
+def _stringify_yaml_scalar(value: Any) -> str:
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return json.dumps(str(value), ensure_ascii=False)
+
+
+def _render_yaml(value: Any, indent: int) -> list[str]:
+    prefix = " " * indent
+    if isinstance(value, dict):
+        if not value:
+            return [f"{prefix}{{}}"]
+        lines: list[str] = []
+        for key, nested in value.items():
+            key_str = str(key)
+            if isinstance(nested, (dict, list)):
+                lines.append(f"{prefix}{key_str}:")
+                lines.extend(_render_yaml(nested, indent + 2))
+            else:
+                lines.append(f"{prefix}{key_str}: {_stringify_yaml_scalar(nested)}")
+        return lines
+    if isinstance(value, list):
+        if not value:
+            return [f"{prefix}[]"]
+        lines = []
+        for element in value:
+            if isinstance(element, (dict, list)):
+                lines.append(f"{prefix}-")
+                lines.extend(_render_yaml(element, indent + 2))
+            else:
+                lines.append(f"{prefix}- {_stringify_yaml_scalar(element)}")
+        return lines
+    return [f"{prefix}{_stringify_yaml_scalar(value)}"]
+
+
 __all__ = [
     "emit_delimited",
     "emit_json",
-    "emit_kv",
-    "emit_lines",
-    "emit_table",
+    "emit_plain",
+    "emit_yaml",
     "parse_fields",
 ]
 
