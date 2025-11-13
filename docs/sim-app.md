@@ -4,9 +4,29 @@ The `sim-app` entry point builds on the low-level `sim-api` client to deliver au
 that solve common operational tasks. Each helper focuses on a specific workflow and reuses the same
 authentication and configuration options as the base CLI.
 
+## `all-user-emails`
+
+Use this helper to collect the primary email addresses of everyone who can access an AI system.
+It merges users from both AI compute projects and MCML groups, deduplicates them and prints the
+first matching `hauptemail` or `kontaktemail` entry for each person. This gives you a single
+distribution list that covers all stakeholders of an AI deployment.
+
+```bash
+sim-app all-user-emails
+```
+
+Provide `--service` when you need to target a specific SIM service identifier. The command defaults
+to `AI`, meaning `sim-app all-user-emails --service=XX` will switch to service `XX`. The helper also
+understands the global options shared across `sim-app` commands, including authentication flags and
+the `--test` sampling mode.
+
+During collection the helper emits warnings on `stderr` whenever a group member is missing, a user
+cannot be resolved or no primary email address exists. Processing continues so you still receive
+partial results for the remaining users.
+
 ## `mcml-master-user-emails`
 
-The first helper discovers all MCML project master users for a service and prints their primary
+This helper discovers all MCML project master users for a service and prints their primary
 ("hauptemail" or "kontaktemail") addresses. Use it to notify account owners, audit responsibility
 assignments or share important service updates.
 

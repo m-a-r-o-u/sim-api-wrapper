@@ -4,6 +4,11 @@ A lightweight, extensible Python wrapper for the [LRZ SIM API](https://simapi.si
 client makes it straightforward to retrieve information about projects, groups, institutions,
 people and users while keeping the implementation easy to read and extend.
 
+> 📚 **Documentation hub**
+>
+> - [SIM API client & CLI guide](docs/sim-api.md)
+> - [SIM App automation playbook](docs/sim-app.md)
+
 ## Features
 
 - 🔌 **Extensible** – add new endpoints by implementing a single method.
@@ -81,18 +86,17 @@ Consult the dedicated guide for a full list of commands and output formats.
 ## What is `sim-app`?
 
 `sim-app` bundles higher-level automation workflows on top of the raw API client so you can turn
-common tasks into repeatable scripts. For example, the `mcml-master-user-emails` helper discovers all
-MCML project master users for a service and prints their primary ("hauptemail" or "kontaktemail")
-addresses—ideal for notifications or audits.
+common tasks into repeatable scripts. Two helpers are available out of the box:
+
+- `all-user-emails` merges AI compute and MCML groups into a single email distribution list,
+  resolving each person's `hauptemail` or `kontaktemail` address.
+- `mcml-master-user-emails` focuses on MCML project master users to help you notify account owners or
+  audit responsibility assignments.
 
 ```bash
-sim-app mcml-master-user-emails --test 2 --verbose
+sim-app all-user-emails --test 2 --verbose
 ```
 
-The snippet above samples two projects while printing detailed progress information. `sim-app` uses
-the same authentication flags as `sim-api`, making it easy to move between both tools.
-
-## Additional documentation
-
-- [Deep dive into the `sim-api` client and CLI](docs/sim-api.md)
-- [Automation recipes with `sim-app`](docs/sim-app.md)
+The snippet above samples two groups while printing detailed progress information. Swap the
+subcommand for `mcml-master-user-emails` to focus on project master users. `sim-app` uses the same
+authentication flags as `sim-api`, making it easy to move between both tools.

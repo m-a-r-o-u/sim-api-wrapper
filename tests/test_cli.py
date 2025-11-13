@@ -63,7 +63,7 @@ def test_all_users_global_test_flag_before_subcommand(
 ):
     captured = _capture_all_users(monkeypatch)
 
-    exit_code = cli.main(["--test", "2", "all-users-emails"])
+    exit_code = cli.main(["--test", "2", "all-user-emails"])
 
     assert exit_code == 0
     assert captured == {"service": "AI", "test": 2}
@@ -75,7 +75,7 @@ def test_all_users_global_test_flag_after_subcommand(
 ):
     captured = _capture_all_users(monkeypatch)
 
-    exit_code = cli.main(["all-users-emails", "--test", "2"])
+    exit_code = cli.main(["all-user-emails", "--test", "2"])
 
     assert exit_code == 0
     assert captured == {"service": "AI", "test": 2}
