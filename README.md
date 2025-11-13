@@ -167,6 +167,11 @@ prints their primary ("hauptemail") addresses:
 sim-app mcml-master-user-emails
 ```
 
+Pass `--test` to sample a subset of projects while developing or testing new
+integrations. For example, `sim-app mcml-master-user-emails --test 2` only processes the
+first two MCML projects that match the selected service. Combine this with `--verbose` (or `-v`) to
+print each step the helper executes for easier debugging.
+
 The command shares the same authentication flags as `sim-api` (`--netrc`, `--no-netrc`, `--base-url`
 and `--timeout`). Diagnostic information is emitted on `stderr` whenever a project is missing master
 users, a user account cannot be resolved, or no hauptemail address exists for a master user. The
