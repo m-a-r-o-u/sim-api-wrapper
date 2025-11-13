@@ -260,17 +260,72 @@ def emit_delimited(
 
 def _select_for_json(data: Any, fields: Sequence[str]) -> Any:
     items = _as_items(data)
+    if len(fields) == 1:
+        expression = fields[0]
+        if expression == ".":
+            return list(items) if isinstance(data, list) else _evaluate_field(data, ".")
+        if isinstance(data, list):
+            return [_evaluate_field(item, expression) for item in items]
+        return _evaluate_field(data, expression)
+
     if isinstance(data, list):
         return [_build_object(item, fields) for item in items]
-    if len(fields) == 1 and fields[0] == ".":
-        return _evaluate_field(data, ".")
     return _build_object(data, fields)
 
 
 def _build_object(item: Any, fields: Sequence[str]) -> Any:
-    if len(fields) == 1 and fields[0] == ".":
-        return _evaluate_field(item, ".")
-    return {field: _evaluate_field(item, field) for field in fields}
+    result: dict[str, Any] = {}
+    for expression in fields:
+        if expression == ".":
+            value = _evaluate_field(item, expression)
+            if isinstance(value, dict):
+                _merge_dicts(result, value)
+            else:
+                result[expression] = value
+            continue
+
+        value = _evaluate_field(item, expression)
+        path = _extract_path(expression)
+        if path is None:
+            result[expression] = value
+            continue
+        _assign_path(result, path, value)
+    return result
+
+
+def _extract_path(expression: str) -> list[str] | None:
+    stages = _split_expression(expression, "|")
+    if len(stages) != 1:
+        return None
+    stage = stages[0].strip()
+    if not stage:
+        return None
+    tokens = _compile_stage(stage)
+    path: list[str] = []
+    for kind, payload in tokens:
+        if kind != "field":
+            return None
+        path.append(payload)
+    return path or None
+
+
+def _assign_path(target: dict[str, Any], path: Sequence[str], value: Any) -> None:
+    current = target
+    for name in path[:-1]:
+        existing = current.get(name)
+        if not isinstance(existing, dict):
+            existing = {}
+            current[name] = existing
+        current = existing
+    current[path[-1]] = value
+
+
+def _merge_dicts(target: dict[str, Any], source: dict[str, Any]) -> None:
+    for key, value in source.items():
+        if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+            _merge_dicts(target[key], value)
+        else:
+            target[key] = value
 
 
 def _prepare_records(

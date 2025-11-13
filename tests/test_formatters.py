@@ -48,7 +48,17 @@ def test_emit_json_preserves_structure(sample_dict: dict[str, object]) -> None:
 
 def test_emit_json_with_fields(sample_dict: dict[str, object]) -> None:
     rendered = emit_json(sample_dict, fields=["name", "nested.value"])
-    assert json.loads(rendered) == {"name": "Example", "nested.value": 42}
+    assert json.loads(rendered) == {"name": "Example", "nested": {"value": 42}}
+
+
+def test_emit_json_with_single_field(sample_dict: dict[str, object]) -> None:
+    rendered = emit_json(sample_dict, fields=["nested.value"])
+    assert json.loads(rendered) == 42
+
+
+def test_emit_json_with_single_field_from_list(sample_list: list[dict[str, object]]) -> None:
+    rendered = emit_json(sample_list, fields=["name"])
+    assert json.loads(rendered) == ["Example", "Second"]
 
 
 def test_emit_yaml_produces_expected_structure(sample_dict: dict[str, object]) -> None:
@@ -72,9 +82,15 @@ def test_emit_yaml_with_fields(sample_dict: dict[str, object]) -> None:
     rendered = emit_yaml(sample_dict, fields=["name", "nested.value"])
     expected = "\n".join([
         'name: "Example"',
-        "nested.value: 42",
+        "nested:",
+        "  value: 42",
     ])
     assert rendered == expected
+
+
+def test_emit_yaml_with_single_field(sample_dict: dict[str, object]) -> None:
+    rendered = emit_yaml(sample_dict, fields=["nested.value"])
+    assert rendered == "42"
 
 
 def test_emit_plain_from_list() -> None:
