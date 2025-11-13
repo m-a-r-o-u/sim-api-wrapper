@@ -511,7 +511,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error(f"Unknown command: {args.command}")
 
     payload = _prepare_payload(result)
-    formatter = _select_formatter(args.format)
+    formatter = _select_formatter(args.format, payload)
     fields = parse_fields(args.fields)
     separator = _decode_separator(args.sep)
     text = formatter(
@@ -531,7 +531,7 @@ def _prepare_payload(result: Any) -> Any:
     return result
 
 
-def _select_formatter(fmt: str | None) -> Callable[..., str]:
+def _select_formatter(fmt: str | None, payload: Any) -> Callable[..., str]:
     mapping: dict[str | None, Callable[..., str]] = {
         None: emit_json,
         "json": emit_json,
@@ -539,6 +539,8 @@ def _select_formatter(fmt: str | None) -> Callable[..., str]:
         "plain": emit_plain,
         "delimited": emit_delimited,
     }
+    if fmt == "delimited" and isinstance(payload, dict):
+        fmt = None
     try:
         return mapping[fmt]
     except KeyError:  # pragma: no cover - argparse restricts format
