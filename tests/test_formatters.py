@@ -119,3 +119,13 @@ def test_emit_delimited_with_header(sample_list: list[dict[str, object]]) -> Non
 def test_emit_delimited_without_header(sample_dict: dict[str, object]) -> None:
     rendered = emit_delimited(sample_dict, fields=["name", "missing"], separator="\t", include_header=False)
     assert rendered == "Example\t"
+
+
+def test_emit_delimited_from_scalar_list_uses_single_row() -> None:
+    rendered = emit_delimited(["alpha", "beta", "gamma"])
+    assert rendered == "alpha,beta,gamma"
+
+
+def test_emit_delimited_from_scalar_list_respects_separator() -> None:
+    rendered = emit_delimited([1, 2, 3], separator=", ")
+    assert rendered == "1, 2, 3"
