@@ -115,7 +115,7 @@ def collect_mcml_master_user_emails(
         result.issues.append("Master user list empty after deduplication.")
         return result
 
-    emails: list[str] = []
+    unique_emails: dict[str, str] = {}
     for username in unique_users:
         logger.info("Fetching user record for %s", username)
         try:
@@ -129,19 +129,20 @@ def collect_mcml_master_user_emails(
         email = _extract_hauptemail(user)
         if email:
             logger.debug("Resolved hauptemail for %s: %s", username, email)
-            emails.append(email)
+            key = email.casefold()
+            unique_emails.setdefault(key, email)
         else:
             result.issues.append(
                 f"No hauptemail or kontaktemail address available for user {username}."
             )
 
-    if not emails:
+    if not unique_emails:
         result.issues.append(
             "No hauptemail or kontaktemail addresses resolved for MCML master users."
         )
         return result
 
-    result.emails.extend(sorted(emails))
+    result.emails.extend(sorted(unique_emails.values(), key=str.casefold))
     logger.info("Collected %d hauptemail address(es)", len(result.emails))
     return result
 

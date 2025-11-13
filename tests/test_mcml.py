@@ -87,6 +87,36 @@ def test_collect_mcml_master_user_emails_falls_back_to_kontaktemail():
     assert result.issues == []
 
 
+def test_collect_mcml_master_user_emails_deduplicates_addresses():
+    client = FakeClient(
+        groups=["pr92no-ai-h-mcml"],
+        master_users={"pr92no": ["ga42qip", "ga42qip2"]},
+        users={
+            "ga42qip": User(
+                kennung="ga42qip",
+                daten={
+                    "emailadressen": [
+                        {"typ": "hauptemail", "adresse": "ga@example.com"}
+                    ]
+                },
+            ),
+            "ga42qip2": User(
+                kennung="ga42qip2",
+                daten={
+                    "emailadressen": [
+                        {"typ": "hauptemail", "adresse": "GA@example.com"}
+                    ]
+                },
+            ),
+        },
+    )
+
+    result = collect_mcml_master_user_emails(client)
+
+    assert result.emails == ["ga@example.com"]
+    assert result.issues == []
+
+
 def test_collect_mcml_master_user_emails_with_project_limit():
     client = FakeClient(
         groups=[
