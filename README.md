@@ -141,9 +141,21 @@ sim-api user di38qex
 ```
 
 Use `--help` to inspect all options. The CLI respects `--netrc` and `--no-netrc` if you need to
-control authentication explicitly. Responses can be rendered in multiple formats via `--format`
-(`json`, `kv`, `lines`, `delimited`, `table`). Combine them with `--fields` (JMESPath expressions),
-`--sep` for custom separators and `--no-header` to suppress headers for delimited outputs.
+control authentication explicitly. Response formatting is controlled by `--format`:
+
+- **Default JSON** – omit `--format` to receive pretty-printed JSON that is easy to pipe into tools
+  such as `jq`. The existing `--fields` selector works the same way across all formats.
+- `--format yaml` – produce valid YAML that can be copied into configuration files while keeping the
+  nested structure intact.
+- `--format plain` – emit newline separated values. When the payload is a mapping, the formatter
+  automatically falls back to the YAML view. Lists (including nested ones) are flattened, which makes
+  it perfect for shell pipelines.
+- `--format delimited` – export rows via Python's CSV writer. Lists are rendered as single delimited
+  values and dictionaries default to JSON strings for compatibility.
+
+The `--sep` option customises the delimiter for `delimited` output only (defaults to a comma, but
+escape sequences such as `\t` are supported). Combine all formats with `--fields` to project or
+filter values before rendering.
 
 #### Selecting fields with JMESPath-like expressions
 
@@ -154,7 +166,7 @@ or string literals intact, making it safe to pass complex expressions without ad
 - Access nested properties: `--fields daten.emailadressen[0].adresse`
 - Apply string filters via `contains`: `--fields "daten.emailadressen[?contains(typ,'hauptemail')]"`
 - Chain projections with the pipe operator: `--fields "daten.emailadressen[].adresse | [0]"`
-- Reduce to a single value in streaming output: `--format lines --fields "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"`
+- Reduce to a single value in streaming output: `--format plain --fields "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"`
 - Extract multiple unrelated values at once: `--fields "daten.adressen[].ort, rollen[?contains(status,'aktiv')].kennung"`
 
 Need a refresher? The [JMESPath tutorial](https://jmespath.org/tutorial.html) explains the full
@@ -163,7 +175,7 @@ great source of inspiration for constructing practical selectors.
 
 ```bash
 # Default JSON output
-sim-api institution 0000000000E4EE4B --format json | jq '.anschriften[0].ort'
+sim-api institution 0000000000E4EE4B | jq '.anschriften[0].ort'
 
 # Pick specific fields in a delimited export
 sim-api institution 0000000000E4EE4B \
@@ -171,19 +183,19 @@ sim-api institution 0000000000E4EE4B \
   --fields lrz_id,name,bezeichnung,status \
 | tee /tmp/inst.tsv
 
-# Aligned table output for humans
+# Human-friendly YAML for nested structures
 sim-api institution 0000000000E4EE4B \
-  --format table \
+  --format yaml \
   --fields lrz_id,name,bezeichnung,status
 
-# Extract nested address fields without a header
+# Extract nested address fields
 sim-api institution 0000000000E4EE4B \
-  --format delimited --sep '\t' --no-header \
+  --format delimited --sep '\t' \
   --fields anschriften[0].strasse,anschriften[0].plz,anschriften[0].ort,anschriften[0].land
 
-# Filter and project using JMESPath and return the first match as a single line
+# Filter and project using JMESPath and return the first match as plain text
 sim-api user di38qex \
-  --format lines \
+  --format plain \
   --fields "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"
 
 # Combine multiple JMESPath expressions when exporting CSV
@@ -192,11 +204,8 @@ sim-api user di38qex \
   --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0],rollen[?status=='aktiv'].bezeichnung"
 
 # Stream identifiers line by line for shell pipelines
-sim-api groups AI --format lines \
+sim-api groups AI --format plain \
 | xargs -n1 -I{} sim-api group-info {} --format delimited --sep '\t' --fields id,owner,count
-
-# Keep compatibility with existing consumers expecting key=value pairs
-sim-api institution 0000000000E4EE4B --format kv | grep '^status='
 ```
 
 ## Extending the client
