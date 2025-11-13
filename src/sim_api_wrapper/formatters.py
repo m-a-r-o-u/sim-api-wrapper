@@ -243,6 +243,11 @@ def emit_delimited(
 ) -> str:
     """Render the payload as delimited values using the csv module."""
 
+    if fields is None:
+        items = list(_as_items(data))
+        if items and all(_is_scalar(item) for item in items):
+            return separator.join(_stringify_line(item) for item in items)
+
     records, field_names = _prepare_records(data, fields)
     buffer = io.StringIO()
     writer = csv.writer(buffer, delimiter=separator)
@@ -492,6 +497,10 @@ def _flatten(values: Iterable[Any]) -> Iterable[Any]:
             yield from _flatten(value)
         else:
             yield value
+
+
+def _is_scalar(value: Any) -> bool:
+    return not isinstance(value, (dict, list, tuple, set))
 
 
 def _stringify(value: Any) -> str:
