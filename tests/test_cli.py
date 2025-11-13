@@ -34,6 +34,18 @@ def stub_client(monkeypatch: pytest.MonkeyPatch) -> List[DummyClient]:
     return instances
 
 
+def _capture_all_users(monkeypatch: pytest.MonkeyPatch):
+    captured: dict[str, object] = {}
+
+    def runner(client, *, service: str, test_sample_size: int | None):
+        captured["service"] = service
+        captured["test"] = test_sample_size
+        return 0
+
+    monkeypatch.setattr(cli, "_run_all_users_emails", runner)
+    return captured
+
+
 def _capture_mcml(monkeypatch: pytest.MonkeyPatch):
     captured: dict[str, object] = {}
 
@@ -44,6 +56,30 @@ def _capture_mcml(monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(cli, "_run_mcml_master_user_emails", runner)
     return captured
+
+
+def test_all_users_global_test_flag_before_subcommand(
+    monkeypatch: pytest.MonkeyPatch, stub_client
+):
+    captured = _capture_all_users(monkeypatch)
+
+    exit_code = cli.main(["--test", "2", "all-users-emails"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 2}
+    assert stub_client[0].closed is True
+
+
+def test_all_users_global_test_flag_after_subcommand(
+    monkeypatch: pytest.MonkeyPatch, stub_client
+):
+    captured = _capture_all_users(monkeypatch)
+
+    exit_code = cli.main(["all-users-emails", "--test", "2"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 2}
+    assert stub_client[0].closed is True
 
 
 def test_global_test_flag_before_subcommand(monkeypatch: pytest.MonkeyPatch, stub_client):

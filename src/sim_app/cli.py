@@ -9,6 +9,10 @@ from typing import List
 from sim_api_wrapper.cli import configure_logging
 from sim_api_wrapper.client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, SimApiClient
 
+from .ai_systems import (
+    AiSystemsCollectionError,
+    collect_ai_system_user_emails,
+)
 from .mcml import McmlCollectionError, collect_mcml_master_user_emails
 
 
@@ -60,6 +64,19 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    all_users = subparsers.add_parser(
+        "all-users-emails",
+        help=(
+            "Collect hauptemail or kontaktemail addresses of all AI system users "
+            "(AI compute and MCML groups)."
+        ),
+    )
+    all_users.add_argument(
+        "--service",
+        default="AI",
+        help="Service identifier used to look up AI system groups (default: %(default)s).",
+    )
+
     mcml = subparsers.add_parser(
         "mcml-master-user-emails",
         help="Collect hauptemail or kontaktemail addresses of MCML master users.",
@@ -91,6 +108,12 @@ def main(argv: List[str] | None = None) -> int:
         return 1
 
     try:
+        if args.command == "all-users-emails":
+            return _run_all_users_emails(
+                client,
+                service=args.service,
+                test_sample_size=args.test_sample_size,
+            )
         if args.command == "mcml-master-user-emails":
             return _run_mcml_master_user_emails(
                 client,
@@ -185,6 +208,31 @@ def _is_verbose_short_option(token: str) -> bool:
     """Return whether ``token`` represents the ``-v``/``-vv`` verbosity flags."""
 
     return token.startswith("-") and token.lstrip("-") and set(token.lstrip("-")) == {"v"}
+
+
+def _run_all_users_emails(
+    client: SimApiClient,
+    *,
+    service: str,
+    test_sample_size: int | None = None,
+) -> int:
+    try:
+        result = collect_ai_system_user_emails(
+            client,
+            service=service,
+            test_sample_size=test_sample_size,
+        )
+    except AiSystemsCollectionError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    for issue in result.issues:
+        print(f"NOTE: {issue}", file=sys.stderr)
+
+    for email in result.emails:
+        print(email)
+
+    return 0 if result.emails else 1
 
 
 def _run_mcml_master_user_emails(
