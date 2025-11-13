@@ -157,6 +157,21 @@ The `--sep` option customises the delimiter for `delimited` output only (default
 escape sequences such as `\t` are supported). Combine all formats with `--fields` to project or
 filter values before rendering.
 
+### SIM app helpers
+
+The package also provides higher-level automation commands via the `sim-app` entry point. The
+first available helper, `mcml-master-user-emails`, discovers all MCML project master users and
+prints their primary ("hauptemail") addresses:
+
+```bash
+sim-app mcml-master-user-emails
+```
+
+The command shares the same authentication flags as `sim-api` (`--netrc`, `--no-netrc`, `--base-url`
+and `--timeout`). Diagnostic information is emitted on `stderr` whenever a project is missing master
+users, a user account cannot be resolved, or no hauptemail address exists for a master user. The
+process continues whenever possible so partial results can still be retrieved.
+
 #### Selecting fields with JMESPath-like expressions
 
 The `--fields` option understands a JMESPath-inspired syntax, so you can use filters, projections
