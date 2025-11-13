@@ -11,6 +11,8 @@ from sim_api_wrapper.client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, SimApiClie
 
 from .ai_systems import (
     AiSystemsCollectionError,
+    AiSystemsMcmlCollectionError,
+    collect_ai_system_mcml_user_emails,
     collect_ai_system_user_emails,
 )
 from .mcml import McmlCollectionError, collect_mcml_master_user_emails
@@ -77,6 +79,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Service identifier used to look up AI system groups (default: %(default)s).",
     )
 
+    mcml_users = subparsers.add_parser(
+        "mcml-user-emails",
+        help="Collect hauptemail or kontaktemail addresses of AI Systems MCML users.",
+    )
+    mcml_users.add_argument(
+        "--service",
+        default="AI",
+        help="Service identifier used to look up MCML groups (default: %(default)s).",
+    )
+
     mcml = subparsers.add_parser(
         "mcml-master-user-emails",
         help="Collect hauptemail or kontaktemail addresses of MCML master users.",
@@ -110,6 +122,12 @@ def main(argv: List[str] | None = None) -> int:
     try:
         if args.command == "all-user-emails":
             return _run_all_users_emails(
+                client,
+                service=args.service,
+                test_sample_size=args.test_sample_size,
+            )
+        if args.command == "mcml-user-emails":
+            return _run_mcml_user_emails(
                 client,
                 service=args.service,
                 test_sample_size=args.test_sample_size,
@@ -223,6 +241,31 @@ def _run_all_users_emails(
             test_sample_size=test_sample_size,
         )
     except AiSystemsCollectionError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    for issue in result.issues:
+        print(f"NOTE: {issue}", file=sys.stderr)
+
+    for email in result.emails:
+        print(email)
+
+    return 0 if result.emails else 1
+
+
+def _run_mcml_user_emails(
+    client: SimApiClient,
+    *,
+    service: str,
+    test_sample_size: int | None = None,
+) -> int:
+    try:
+        result = collect_ai_system_mcml_user_emails(
+            client,
+            service=service,
+            test_sample_size=test_sample_size,
+        )
+    except AiSystemsMcmlCollectionError as exc:
         print(exc, file=sys.stderr)
         return 1
 
