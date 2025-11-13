@@ -1,31 +1,76 @@
-"""Tests for CLI utilities."""
+"""Tests for the sim-app CLI entry point."""
 
 from __future__ import annotations
 
+from typing import List
+
 import pytest
 
-from sim_api_wrapper.cli import _decode_separator, _select_formatter
-from sim_api_wrapper.formatters import emit_delimited, emit_json
+from sim_app import cli
 
 
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
-        (",", ","),
-        ("\\t", "\t"),
-        ("\\n", "\n"),
-        ("\\x09", "\t"),
-    ],
-)
-def test_decode_separator_handles_escape_sequences(value: str, expected: str) -> None:
-    assert _decode_separator(value) == expected
+class DummyClient:
+    def __init__(self, *, base_url, timeout, netrc_path, use_netrc):
+        self.base_url = base_url
+        self.timeout = timeout
+        self.netrc_path = netrc_path
+        self.use_netrc = use_netrc
+        self.closed = False
+
+    def close(self) -> None:
+        self.closed = True
 
 
-def test_select_formatter_falls_back_to_json_for_dict_payload() -> None:
-    formatter = _select_formatter("delimited", {"key": "value"})
-    assert formatter is emit_json
+@pytest.fixture(autouse=True)
+def stub_client(monkeypatch: pytest.MonkeyPatch) -> List[DummyClient]:
+    instances: List[DummyClient] = []
+
+    def factory(**kwargs):
+        client = DummyClient(**kwargs)
+        instances.append(client)
+        return client
+
+    monkeypatch.setattr(cli, "SimApiClient", factory)
+    return instances
 
 
-def test_select_formatter_keeps_delimited_for_list_payload() -> None:
-    formatter = _select_formatter("delimited", [{"key": "value"}])
-    assert formatter is emit_delimited
+def _capture_mcml(monkeypatch: pytest.MonkeyPatch):
+    captured: dict[str, object] = {}
+
+    def runner(client, *, service: str, test_sample_size: int | None):
+        captured["service"] = service
+        captured["test"] = test_sample_size
+        return 0
+
+    monkeypatch.setattr(cli, "_run_mcml_master_user_emails", runner)
+    return captured
+
+
+def test_global_test_flag_before_subcommand(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured = _capture_mcml(monkeypatch)
+
+    exit_code = cli.main(["--test", "2", "mcml-master-user-emails"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 2}
+    assert stub_client[0].closed is True
+
+
+def test_global_test_flag_after_subcommand(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured = _capture_mcml(monkeypatch)
+
+    exit_code = cli.main(["mcml-master-user-emails", "--test", "2"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 2}
+    assert stub_client[0].closed is True
+
+
+def test_verbose_short_option_is_reordered(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured = _capture_mcml(monkeypatch)
+
+    exit_code = cli.main(["mcml-master-user-emails", "-vv", "--test", "1"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 1}
+    assert stub_client[0].closed is True

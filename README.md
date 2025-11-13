@@ -82,8 +82,8 @@ Consult the dedicated guide for a full list of commands and output formats.
 
 `sim-app` bundles higher-level automation workflows on top of the raw API client so you can turn
 common tasks into repeatable scripts. For example, the `mcml-master-user-emails` helper discovers all
-MCML project master users for a service and prints their primary ("hauptemail") addresses—ideal for
-notifications or audits.
+MCML project master users for a service and prints their primary ("hauptemail" or "kontaktemail")
+addresses—ideal for notifications or audits.
 
 ```bash
 sim-app mcml-master-user-emails --test 2 --verbose

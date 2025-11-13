@@ -12,6 +12,9 @@ from sim_api_wrapper.client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, SimApiClie
 from .mcml import McmlCollectionError, collect_mcml_master_user_emails
 
 
+_SubParsersAction = getattr(argparse, "_SubParsersAction")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="High-level helper commands built on top of the SIM API wrapper.",
@@ -59,7 +62,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcml = subparsers.add_parser(
         "mcml-master-user-emails",
-        help="Collect hauptemail addresses of MCML master users.",
+        help="Collect hauptemail or kontaktemail addresses of MCML master users.",
     )
     mcml.add_argument(
         "--service",
@@ -72,7 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: List[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(_normalise_global_options(parser, argv))
 
     configure_logging(args.verbose)
 
@@ -99,6 +102,89 @@ def main(argv: List[str] | None = None) -> int:
 
     parser.error(f"Unknown command: {args.command}")
     return 2
+
+
+def _normalise_global_options(
+    parser: argparse.ArgumentParser, argv: List[str] | None
+) -> List[str]:
+    """Allow global options to appear either before or after the subcommand."""
+
+    arguments = list(argv) if argv is not None else sys.argv[1:]
+    if not arguments:
+        return arguments
+
+    subcommands: set[str] = set()
+    for action in parser._actions:  # pragma: no cover - argparse internals are stable
+        if isinstance(action, _SubParsersAction):
+            subcommands.update(action.choices)
+
+    command_index = next(
+        (index for index, token in enumerate(arguments) if token in subcommands),
+        None,
+    )
+    if command_index is None:
+        return arguments
+
+    prefix = arguments[:command_index]
+    command_and_tail = arguments[command_index:]
+
+    reordered_globals: List[str] = []
+    remainder: List[str] = [command_and_tail[0]]
+
+    index = 1
+    while index < len(command_and_tail):
+        token = command_and_tail[index]
+
+        consumed = _consume_global_option(token, command_and_tail, index, reordered_globals)
+        if consumed:
+            index += consumed
+            continue
+
+        remainder.append(token)
+        index += 1
+
+    return prefix + reordered_globals + remainder
+
+
+def _consume_global_option(
+    token: str, command_and_tail: List[str], index: int, reordered_globals: List[str]
+) -> int:
+    """Append recognised global options to ``reordered_globals``.
+
+    Returns the number of tokens consumed (including ``token``) if the option is
+    recognised, otherwise returns ``0``.
+    """
+
+    options_with_values = {
+        "--base-url": 1,
+        "--netrc": 1,
+        "--timeout": 1,
+        "--test": 1,
+    }
+    flag_options = {"--no-netrc", "--verbose"}
+
+    for option, value_count in options_with_values.items():
+        if token == option:
+            reordered_globals.append(token)
+            for offset in range(1, value_count + 1):
+                if index + offset < len(command_and_tail):
+                    reordered_globals.append(command_and_tail[index + offset])
+            return 1 + value_count
+        if value_count and token.startswith(f"{option}="):
+            reordered_globals.append(token)
+            return 1
+
+    if token in flag_options or _is_verbose_short_option(token):
+        reordered_globals.append(token)
+        return 1
+
+    return 0
+
+
+def _is_verbose_short_option(token: str) -> bool:
+    """Return whether ``token`` represents the ``-v``/``-vv`` verbosity flags."""
+
+    return token.startswith("-") and token.lstrip("-") and set(token.lstrip("-")) == {"v"}
 
 
 def _run_mcml_master_user_emails(

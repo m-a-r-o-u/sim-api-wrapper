@@ -39,7 +39,7 @@ def collect_mcml_master_user_emails(
     test_sample_size: int | None = None,
     project_limit: int | None = None,
 ) -> McmlEmailCollectionResult:
-    """Collect hauptemail addresses of MCML master users for a service."""
+    """Collect primary (hauptemail/kontaktemail) addresses of MCML master users."""
 
     if project_limit is not None:
         warnings.warn(
@@ -131,10 +131,14 @@ def collect_mcml_master_user_emails(
             logger.debug("Resolved hauptemail for %s: %s", username, email)
             emails.append(email)
         else:
-            result.issues.append(f"No hauptemail address available for user {username}.")
+            result.issues.append(
+                f"No hauptemail or kontaktemail address available for user {username}."
+            )
 
     if not emails:
-        result.issues.append("No hauptemail addresses resolved for MCML master users.")
+        result.issues.append(
+            "No hauptemail or kontaktemail addresses resolved for MCML master users."
+        )
         return result
 
     result.emails.extend(sorted(emails))
@@ -171,11 +175,24 @@ def _extract_hauptemail(user: User) -> str | None:
     if not isinstance(emails, list):
         return None
 
-    for entry in emails:
-        if not isinstance(entry, dict):
-            continue
-        typ = entry.get("typ")
-        adresse = entry.get("adresse")
-        if isinstance(typ, str) and "hauptemail" in typ.lower() and isinstance(adresse, str):
-            return adresse
+    preferred_types = ("hauptemail", "kontaktemail")
+
+    def _match(target: str) -> str | None:
+        for entry in emails:
+            if not isinstance(entry, dict):
+                continue
+            typ = entry.get("typ")
+            adresse = entry.get("adresse")
+            if (
+                isinstance(typ, str)
+                and target in typ.lower()
+                and isinstance(adresse, str)
+            ):
+                return adresse
+        return None
+
+    for target in preferred_types:
+        match = _match(target)
+        if match:
+            return match
     return None

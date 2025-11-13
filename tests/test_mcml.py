@@ -60,7 +60,31 @@ def test_collect_mcml_master_user_emails_success():
     result = collect_mcml_master_user_emails(client)
 
     assert result.emails == ["ab@example.com", "ga@example.com"]
-    assert "No hauptemail address available for user zz99." in result.issues
+    assert (
+        "No hauptemail or kontaktemail address available for user zz99." in result.issues
+    )
+
+
+def test_collect_mcml_master_user_emails_falls_back_to_kontaktemail():
+    client = FakeClient(
+        groups=["pr92no-ai-h-mcml"],
+        master_users={"pr92no": ["ga42qip", "zz99"]},
+        users={
+            "ga42qip": User(
+                kennung="ga42qip",
+                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "ga@example.com"}]},
+            ),
+            "zz99": User(
+                kennung="zz99",
+                daten={"emailadressen": [{"typ": "kontaktemail", "adresse": "contact@example.com"}]},
+            ),
+        },
+    )
+
+    result = collect_mcml_master_user_emails(client)
+
+    assert result.emails == ["contact@example.com", "ga@example.com"]
+    assert result.issues == []
 
 
 def test_collect_mcml_master_user_emails_with_project_limit():
@@ -94,7 +118,9 @@ def test_collect_mcml_master_user_emails_with_project_limit():
     result = collect_mcml_master_user_emails(client, test_sample_size=2)
 
     assert result.emails == ["ab@example.com", "ga@example.com"]
-    assert "No hauptemail address available for user zz99." not in result.issues
+    assert (
+        "No hauptemail or kontaktemail address available for user zz99." not in result.issues
+    )
 
 
 def test_collect_mcml_master_user_emails_no_groups():
