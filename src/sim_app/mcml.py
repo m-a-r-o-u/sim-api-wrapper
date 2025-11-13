@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+import warnings
 from typing import Iterable, List, Sequence
 
 from sim_api_wrapper.client import SimApiClient
@@ -35,12 +36,27 @@ def collect_mcml_master_user_emails(
     client: SimApiClient,
     *,
     service: str = "AI",
+    test_sample_size: int | None = None,
+    project_limit: int | None = None,
 ) -> McmlEmailCollectionResult:
     """Collect hauptemail addresses of MCML master users for a service."""
+
+    if project_limit is not None:
+        warnings.warn(
+            "'project_limit' is deprecated; use 'test_sample_size' instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if test_sample_size is not None:
+            raise ValueError(
+                "Specify only one of 'test_sample_size' or the deprecated 'project_limit'."
+            )
+        test_sample_size = project_limit
 
     result = McmlEmailCollectionResult()
 
     try:
+        logger.info("Listing MCML groups for service %s", service)
         groups = client.list_groups(service)
     except SimApiError as exc:  # pragma: no cover - defensive path
         message = f"Failed to list groups for service {service}: {exc}"
@@ -48,6 +64,7 @@ def collect_mcml_master_user_emails(
         raise McmlCollectionError(message) from exc
 
     mcml_groups = [group for group in groups if group.endswith(_MCML_SUFFIX)]
+    logger.info("Identified %d MCML master groups", len(mcml_groups))
     if not mcml_groups:
         result.issues.append(
             f"No MCML master groups ending with '{_MCML_SUFFIX}' found for service {service}."
@@ -55,12 +72,25 @@ def collect_mcml_master_user_emails(
         return result
 
     projects = sorted({group[: -len(_MCML_SUFFIX)] for group in mcml_groups})
+    logger.info("Resolved %d MCML projects", len(projects))
     if not projects:
         result.issues.append("Resolved MCML project list is empty after processing group names.")
         return result
 
+    if test_sample_size is not None:
+        if test_sample_size <= 0:
+            result.issues.append("Test sample size must be a positive integer.")
+            return result
+        logger.info(
+            "Applying test sample size; limiting MCML processing to %d project(s): %s",
+            test_sample_size,
+            ", ".join(projects[:test_sample_size]),
+        )
+        projects = projects[:test_sample_size]
+
     master_users: list[str] = []
     for project in projects:
+        logger.info("Fetching master users for project %s", project)
         try:
             users = client.get_project_master_users(project)
         except SimApiError as exc:
@@ -69,6 +99,7 @@ def collect_mcml_master_user_emails(
             result.issues.append(message)
             continue
 
+        logger.debug("Retrieved master user identifiers for %s: %s", project, users)
         if not users:
             result.issues.append(f"No master users returned for project {project}.")
             continue
@@ -86,6 +117,7 @@ def collect_mcml_master_user_emails(
 
     emails: list[str] = []
     for username in unique_users:
+        logger.info("Fetching user record for %s", username)
         try:
             user = client.get_user(username)
         except SimApiError as exc:
@@ -96,6 +128,7 @@ def collect_mcml_master_user_emails(
 
         email = _extract_hauptemail(user)
         if email:
+            logger.debug("Resolved hauptemail for %s: %s", username, email)
             emails.append(email)
         else:
             result.issues.append(f"No hauptemail address available for user {username}.")
@@ -105,6 +138,7 @@ def collect_mcml_master_user_emails(
         return result
 
     result.emails.extend(sorted(emails))
+    logger.info("Collected %d hauptemail address(es)", len(result.emails))
     return result
 
 

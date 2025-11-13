@@ -44,6 +44,16 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="Increase logging verbosity (use -vv for debug logs).",
     )
+    parser.add_argument(
+        "--test",
+        dest="test_sample_size",
+        type=int,
+        default=None,
+        help=(
+            "Limit SIM app processing to the first N items for quick test runs. "
+            "Applies uniformly across all sim-app commands."
+        ),
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -79,7 +89,11 @@ def main(argv: List[str] | None = None) -> int:
 
     try:
         if args.command == "mcml-master-user-emails":
-            return _run_mcml_master_user_emails(client, service=args.service)
+            return _run_mcml_master_user_emails(
+                client,
+                service=args.service,
+                test_sample_size=args.test_sample_size,
+            )
     finally:
         client.close()
 
@@ -87,9 +101,18 @@ def main(argv: List[str] | None = None) -> int:
     return 2
 
 
-def _run_mcml_master_user_emails(client: SimApiClient, *, service: str) -> int:
+def _run_mcml_master_user_emails(
+    client: SimApiClient,
+    *,
+    service: str,
+    test_sample_size: int | None = None,
+) -> int:
     try:
-        result = collect_mcml_master_user_emails(client, service=service)
+        result = collect_mcml_master_user_emails(
+            client,
+            service=service,
+            test_sample_size=test_sample_size,
+        )
     except McmlCollectionError as exc:
         print(exc, file=sys.stderr)
         return 1

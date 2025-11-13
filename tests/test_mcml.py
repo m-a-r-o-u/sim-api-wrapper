@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+import warnings
+
 from sim_app.mcml import McmlCollectionError, collect_mcml_master_user_emails
 from sim_api_wrapper.models import User
 from sim_api_wrapper.exceptions import SimApiError
@@ -61,6 +63,40 @@ def test_collect_mcml_master_user_emails_success():
     assert "No hauptemail address available for user zz99." in result.issues
 
 
+def test_collect_mcml_master_user_emails_with_project_limit():
+    client = FakeClient(
+        groups=[
+            "pr92no-ai-h-mcml",
+            "pr92to-ai-h-mcml",
+            "pr93xy-ai-h-mcml",
+        ],
+        master_users={
+            "pr92no": ["ga42qip"],
+            "pr92to": ["ab12"],
+            "pr93xy": ["zz99"],
+        },
+        users={
+            "ga42qip": User(
+                kennung="ga42qip",
+                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "ga@example.com"}]},
+            ),
+            "ab12": User(
+                kennung="ab12",
+                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "ab@example.com"}]},
+            ),
+            "zz99": User(
+                kennung="zz99",
+                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "zz@example.com"}]},
+            ),
+        },
+    )
+
+    result = collect_mcml_master_user_emails(client, test_sample_size=2)
+
+    assert result.emails == ["ab@example.com", "ga@example.com"]
+    assert "No hauptemail address available for user zz99." not in result.issues
+
+
 def test_collect_mcml_master_user_emails_no_groups():
     client = FakeClient(groups=["pr92no-ai-c"], master_users={}, users={})
 
@@ -75,3 +111,47 @@ def test_collect_mcml_master_user_emails_group_failure():
 
     with pytest.raises(McmlCollectionError):
         collect_mcml_master_user_emails(client)
+
+
+def test_collect_mcml_master_user_emails_with_invalid_limit():
+    client = FakeClient(
+        groups=["pr92no-ai-h-mcml"],
+        master_users={"pr92no": ["ga42qip"]},
+        users={},
+    )
+
+    result = collect_mcml_master_user_emails(client, test_sample_size=0)
+
+    assert result.emails == []
+    assert result.issues == ["Test sample size must be a positive integer."]
+
+
+def test_collect_mcml_master_user_emails_with_deprecated_project_limit():
+    client = FakeClient(
+        groups=[
+            "pr92no-ai-h-mcml",
+            "pr92to-ai-h-mcml",
+        ],
+        master_users={
+            "pr92no": ["ga42qip"],
+            "pr92to": ["ab12"],
+        },
+        users={
+            "ga42qip": User(
+                kennung="ga42qip",
+                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "ga@example.com"}]},
+            ),
+            "ab12": User(
+                kennung="ab12",
+                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "ab@example.com"}]},
+            ),
+        },
+    )
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", DeprecationWarning)
+        result = collect_mcml_master_user_emails(client, project_limit=1)
+
+    assert result.emails == ["ga@example.com"]
+    assert len(caught) == 1
+    assert issubclass(caught[0].category, DeprecationWarning)
