@@ -137,9 +137,9 @@ and pipes to extract exactly the values you care about. The parser keeps commas 
 or string literals intact, making it safe to pass complex expressions without additional quoting.
 
 - Access nested properties: `--fields daten.emailadressen[0].adresse`
-- Apply string filters via `contains`: `--fields "daten.emailadressen[?contains(typ,'hauptemail')]"`
+- Apply string filters via `contains`: `--fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')]"`
 - Chain projections with the pipe operator: `--fields "daten.emailadressen[].adresse | [0]"`
-- Reduce to a single value in streaming output: `--format plain --fields "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"`
+- Reduce to a single value in streaming output: `--format plain --fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"`
 - Extract multiple unrelated values at once: `--fields "daten.adressen[].ort, rollen[?contains(status,'aktiv')].kennung"`
 
 Need a refresher? The [JMESPath tutorial](https://jmespath.org/tutorial.html) explains the full
@@ -171,12 +171,12 @@ sim-api institution 0000000000E4EE4B \
 # Filter and project using JMESPath and return the first match as plain text
 sim-api user di38qex \
   --format plain \
-  --fields "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"
+  --fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"
 
 # Combine multiple JMESPath expressions when exporting CSV
 sim-api user di38qex \
   --format delimited --sep ';' \
-  --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0],rollen[?status=='aktiv'].bezeichnung"
+  --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0],rollen[?status=='aktiv'].bezeichnung"
 
 # Stream identifiers line by line for shell pipelines
 sim-api groups AI --format plain \

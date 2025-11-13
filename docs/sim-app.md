@@ -7,8 +7,8 @@ authentication and configuration options as the base CLI.
 ## `mcml-master-user-emails`
 
 The first helper discovers all MCML project master users for a service and prints their primary
-("hauptemail") addresses. Use it to notify account owners, audit responsibility assignments or share
-important service updates.
+("hauptemail" or "kontaktemail") addresses. Use it to notify account owners, audit responsibility
+assignments or share important service updates.
 
 ```bash
 sim-app mcml-master-user-emails
@@ -21,8 +21,9 @@ executes for easier debugging.
 
 The command shares the same authentication flags as `sim-api` (`--netrc`, `--no-netrc`, `--base-url`
 and `--timeout`). Diagnostic information is emitted on `stderr` whenever a project is missing master
-users, a user account cannot be resolved, or no hauptemail address exists for a master user. The
-process continues whenever possible so partial results can still be retrieved.
+users, a user account cannot be resolved, or neither a hauptemail nor a kontaktemail address exists
+for a master user. The process continues whenever possible so partial results can still be
+retrieved.
 
 ## Selecting and exporting data
 
@@ -32,7 +33,7 @@ processing:
 
 ```bash
 sim-app mcml-master-user-emails \
-  --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]" \
+  --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]" \
   --format delimited --sep ';'
 ```
 

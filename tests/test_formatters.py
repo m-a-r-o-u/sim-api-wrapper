@@ -118,7 +118,9 @@ def test_emit_plain_supports_jmespath_filters() -> None:
             ]
         }
     }
-    expression = "daten.emailadressen[?contains(typ,'hauptemail')].adresse | [0]"
+    expression = (
+        "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"
+    )
     rendered = emit_plain(payload, fields=[expression])
     assert rendered.splitlines() == ["main@example.org"]
 
