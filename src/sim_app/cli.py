@@ -65,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     all_users = subparsers.add_parser(
-        "all-users-emails",
+        "all-user-emails",
         help=(
             "Collect hauptemail or kontaktemail addresses of all AI system users "
             "(AI compute and MCML groups)."
@@ -108,7 +108,7 @@ def main(argv: List[str] | None = None) -> int:
         return 1
 
     try:
-        if args.command == "all-users-emails":
+        if args.command == "all-user-emails":
             return _run_all_users_emails(
                 client,
                 service=args.service,
