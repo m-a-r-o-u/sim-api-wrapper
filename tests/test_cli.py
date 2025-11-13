@@ -58,6 +58,18 @@ def _capture_mcml(monkeypatch: pytest.MonkeyPatch):
     return captured
 
 
+def _capture_mcml_users(monkeypatch: pytest.MonkeyPatch):
+    captured: dict[str, object] = {}
+
+    def runner(client, *, service: str, test_sample_size: int | None):
+        captured["service"] = service
+        captured["test"] = test_sample_size
+        return 0
+
+    monkeypatch.setattr(cli, "_run_mcml_user_emails", runner)
+    return captured
+
+
 def test_all_users_global_test_flag_before_subcommand(
     monkeypatch: pytest.MonkeyPatch, stub_client
 ):
@@ -109,4 +121,24 @@ def test_verbose_short_option_is_reordered(monkeypatch: pytest.MonkeyPatch, stub
 
     assert exit_code == 0
     assert captured == {"service": "AI", "test": 1}
+    assert stub_client[0].closed is True
+
+
+def test_mcml_users_global_test_flag(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured = _capture_mcml_users(monkeypatch)
+
+    exit_code = cli.main(["mcml-user-emails", "--test", "3"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 3}
+    assert stub_client[0].closed is True
+
+
+def test_mcml_users_custom_service(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured = _capture_mcml_users(monkeypatch)
+
+    exit_code = cli.main(["mcml-user-emails", "--service", "AIS", "--test", "1"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AIS", "test": 1}
     assert stub_client[0].closed is True

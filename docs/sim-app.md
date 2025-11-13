@@ -45,6 +45,22 @@ users, a user account cannot be resolved, or neither a hauptemail nor a kontakte
 for a master user. The process continues whenever possible so partial results can still be
 retrieved.
 
+## `mcml-user-emails`
+
+Use this helper to focus on MCML users that belong to the central AI Systems project. It filters
+service groups whose names start with `aisystems` and end with the `-ai-h-mcml` suffix, aggregates the
+members, deduplicates them and prints each person's primary ("hauptemail" or "kontaktemail")
+address. The output is perfect for distributing targeted notices to the shared MCML environment
+users.
+
+```bash
+sim-app mcml-user-emails
+```
+
+Like the other helpers, you can pass `--service` to inspect a different SIM service and `--test` to
+sample only the first _n_ matching groups when experimenting. Increase verbosity with `--verbose` or
+`-vv` to trace the underlying API calls and see intermediate progress messages.
+
 ## Selecting and exporting data
 
 Helpers accept the familiar `--fields` option to extract targeted properties from each record using a

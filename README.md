@@ -86,10 +86,12 @@ Consult the dedicated guide for a full list of commands and output formats.
 ## What is `sim-app`?
 
 `sim-app` bundles higher-level automation workflows on top of the raw API client so you can turn
-common tasks into repeatable scripts. Two helpers are available out of the box:
+common tasks into repeatable scripts. Three helpers are available out of the box:
 
 - `all-user-emails` merges AI compute and MCML groups into a single email distribution list,
   resolving each person's `hauptemail` or `kontaktemail` address.
+- `mcml-user-emails` extracts the primary addresses of MCML users that belong to the shared AI
+  Systems project.
 - `mcml-master-user-emails` focuses on MCML project master users to help you notify account owners or
   audit responsibility assignments.
 
@@ -98,5 +100,5 @@ sim-app all-user-emails --test 2 --verbose
 ```
 
 The snippet above samples two groups while printing detailed progress information. Swap the
-subcommand for `mcml-master-user-emails` to focus on project master users. `sim-app` uses the same
-authentication flags as `sim-api`, making it easy to move between both tools.
+subcommand for `mcml-user-emails` or `mcml-master-user-emails` to focus on the MCML cohorts. `sim-app`
+uses the same authentication flags as `sim-api`, making it easy to move between both tools.
