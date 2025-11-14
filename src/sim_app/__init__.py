@@ -8,6 +8,12 @@ from .ai_systems import (
     collect_ai_system_user_emails,
 )
 from .mcml import McmlEmailCollectionResult, collect_mcml_master_user_emails
+from .user_projects import (
+    UserProjectsMembership,
+    UserProjectsMembershipCollectionError,
+    UserProjectsMembershipResult,
+    collect_user_projects_memberships,
+)
 
 __all__ = [
     "AiSystemsCollectionError",
@@ -17,4 +23,8 @@ __all__ = [
     "collect_ai_system_user_emails",
     "McmlEmailCollectionResult",
     "collect_mcml_master_user_emails",
+    "UserProjectsMembership",
+    "UserProjectsMembershipCollectionError",
+    "UserProjectsMembershipResult",
+    "collect_user_projects_memberships",
 ]

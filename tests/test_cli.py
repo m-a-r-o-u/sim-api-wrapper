@@ -70,6 +70,25 @@ def _capture_mcml_users(monkeypatch: pytest.MonkeyPatch):
     return captured
 
 
+def _capture_user_memberships(monkeypatch: pytest.MonkeyPatch):
+    captured: dict[str, object] = {}
+
+    def runner(
+        client,
+        *,
+        service: str,
+        test_sample_size: int | None,
+        histogram: bool,
+    ):
+        captured["service"] = service
+        captured["test"] = test_sample_size
+        captured["histogram"] = histogram
+        return 0
+
+    monkeypatch.setattr(cli, "_run_user_projects_membership", runner)
+    return captured
+
+
 def test_all_users_global_test_flag_before_subcommand(
     monkeypatch: pytest.MonkeyPatch, stub_client
 ):
@@ -141,4 +160,26 @@ def test_mcml_users_custom_service(monkeypatch: pytest.MonkeyPatch, stub_client)
 
     assert exit_code == 0
     assert captured == {"service": "AIS", "test": 1}
+    assert stub_client[0].closed is True
+
+
+def test_user_projects_membership_invocation(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured = _capture_user_memberships(monkeypatch)
+
+    exit_code = cli.main(["user-projects-membership", "--service", "AI", "--histogram"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": None, "histogram": True}
+    assert stub_client[0].closed is True
+
+
+def test_user_projects_membership_respects_test_flag(
+    monkeypatch: pytest.MonkeyPatch, stub_client
+):
+    captured = _capture_user_memberships(monkeypatch)
+
+    exit_code = cli.main(["user-projects-membership", "--test", "5"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 5, "histogram": False}
     assert stub_client[0].closed is True

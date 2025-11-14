@@ -16,6 +16,10 @@ from .ai_systems import (
     collect_ai_system_user_emails,
 )
 from .mcml import McmlCollectionError, collect_mcml_master_user_emails
+from .user_projects import (
+    UserProjectsMembershipCollectionError,
+    collect_user_projects_memberships,
+)
 
 
 _SubParsersAction = getattr(argparse, "_SubParsersAction")
@@ -99,6 +103,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Service identifier used to look up MCML groups (default: %(default)s).",
     )
 
+    membership = subparsers.add_parser(
+        "user-projects-membership",
+        help="Collect AI system user project memberships and associated emails.",
+    )
+    membership.add_argument(
+        "--service",
+        default="AI",
+        help="Service identifier used to look up AI system groups (default: %(default)s).",
+    )
+    membership.add_argument(
+        "--histogram",
+        action="store_true",
+        help="Summarise the distribution of project counts instead of individual rows.",
+    )
+
     return parser
 
 
@@ -137,6 +156,13 @@ def main(argv: List[str] | None = None) -> int:
                 client,
                 service=args.service,
                 test_sample_size=args.test_sample_size,
+            )
+        if args.command == "user-projects-membership":
+            return _run_user_projects_membership(
+                client,
+                service=args.service,
+                test_sample_size=args.test_sample_size,
+                histogram=args.histogram,
             )
     finally:
         client.close()
@@ -301,6 +327,44 @@ def _run_mcml_master_user_emails(
         print(email)
 
     return 0 if result.emails else 1
+
+
+def _run_user_projects_membership(
+    client: SimApiClient,
+    *,
+    service: str,
+    test_sample_size: int | None = None,
+    histogram: bool = False,
+) -> int:
+    try:
+        result = collect_user_projects_memberships(
+            client,
+            service=service,
+            test_sample_size=test_sample_size,
+        )
+    except UserProjectsMembershipCollectionError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    for issue in result.issues:
+        print(f"NOTE: {issue}", file=sys.stderr)
+
+    if histogram:
+        print("# Number of Projects - Number of Users")
+        histogram_data = result.build_histogram()
+        for project_count, user_count in histogram_data.items():
+            print(f"{project_count} {user_count}")
+        return 0 if result.memberships else 1
+
+    for membership in result.memberships:
+        parts = [membership.username]
+        if membership.email:
+            parts.append(membership.email)
+        if membership.projects:
+            parts.append(", ".join(membership.projects))
+        print(" ".join(parts))
+
+    return 0 if result.memberships else 1
 
 
 if __name__ == "__main__":  # pragma: no cover
