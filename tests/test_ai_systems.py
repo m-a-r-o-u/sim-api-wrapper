@@ -162,16 +162,15 @@ def test_collect_ai_system_user_emails_group_listing_failure():
 def test_collect_ai_system_mcml_user_emails_success():
     client = FakeClient(
         groups=[
-            "aisystems-main-ai-h-mcml",
-            "aisystems-um-ai-h-mcml",
+            "central-ai-h-mcml",
+            "ops-ai-h-mcml",
             "aisystems-other",
-            "aisystems-ai-h-mcml",
             "a1101-ai-h-mcml",
         ],
         members={
-            "aisystems-main-ai-h-mcml": ["mcml1", "mcml2"],
-            "aisystems-um-ai-h-mcml": ["mcml2", "mcml3"],
-            "aisystems-ai-h-mcml": ["mcml4"],
+            "central-ai-h-mcml": ["mcml1", "mcml2"],
+            "ops-ai-h-mcml": ["mcml2", "mcml3"],
+            "a1101-ai-h-mcml": ["mcml4"],
         },
         users={
             "mcml1": User(
@@ -220,14 +219,14 @@ def test_collect_ai_system_mcml_user_emails_success():
 def test_collect_ai_system_mcml_user_emails_with_test_sample_size():
     client = FakeClient(
         groups=[
-            "aisystems-a-ai-h-mcml",
-            "aisystems-b-ai-h-mcml",
-            "aisystems-c-ai-h-mcml",
+            "central-ai-h-mcml",
+            "ops-ai-h-mcml",
+            "aisystems-ai-h-mcml",
         ],
         members={
-            "aisystems-a-ai-h-mcml": ["mcml1"],
-            "aisystems-b-ai-h-mcml": ["mcml2"],
-            "aisystems-c-ai-h-mcml": ["mcml3"],
+            "central-ai-h-mcml": ["mcml1"],
+            "ops-ai-h-mcml": ["mcml2"],
+            "aisystems-ai-h-mcml": ["mcml3"],
         },
         users={
             "mcml1": User(
@@ -247,12 +246,12 @@ def test_collect_ai_system_mcml_user_emails_with_test_sample_size():
 
     result = collect_ai_system_mcml_user_emails(client, test_sample_size=2)
 
-    assert result.emails == ["one@example.com", "two@example.com"]
-    assert "three@example.com" not in result.emails
+    assert result.emails == ["one@example.com", "three@example.com"]
+    assert "two@example.com" not in result.emails
 
 
 def test_collect_ai_system_mcml_user_emails_requires_positive_sample():
-    client = FakeClient(groups=["aisystems-main-ai-h-mcml"], members={}, users={})
+    client = FakeClient(groups=["central-ai-h-mcml"], members={}, users={})
 
     result = collect_ai_system_mcml_user_emails(client, test_sample_size=0)
 
@@ -267,7 +266,7 @@ def test_collect_ai_system_mcml_user_emails_no_groups():
 
     assert result.emails == []
     assert result.issues == [
-        "No AI Systems MCML groups found. Expected names starting with 'aisystems' and ending with '-ai-h-mcml'."
+        "No AI Systems MCML groups found. Expected names ending with '-ai-h-mcml'."
     ]
 
 

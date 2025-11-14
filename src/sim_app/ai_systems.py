@@ -147,17 +147,13 @@ def collect_ai_system_mcml_user_emails(
         logger.error(message)
         raise AiSystemsMcmlCollectionError(message) from exc
 
-    target_groups = sorted(
-        group
-        for group in groups
-        if _is_mcml_group(group) and group.casefold().startswith("aisystems")
-    )
+    target_groups = sorted(group for group in groups if _is_mcml_group(group))
     logger.info("Identified %d AI Systems MCML group(s)", len(target_groups))
 
     if not target_groups:
         result.issues.append(
-            "No AI Systems MCML groups found. Expected names starting with 'aisystems' "
-            f"and ending with '{_MCML_SUFFIXES[0]}'."
+            "No AI Systems MCML groups found. Expected names ending with "
+            f"'{_MCML_SUFFIXES[0]}'."
         )
         return result
 
