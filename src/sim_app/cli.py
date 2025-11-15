@@ -358,8 +358,6 @@ def _run_user_projects_membership(
 
     for membership in result.memberships:
         parts = [membership.username]
-        if membership.email:
-            parts.append(membership.email)
         if membership.projects:
             parts.append(", ".join(membership.projects))
         print(" ".join(parts))

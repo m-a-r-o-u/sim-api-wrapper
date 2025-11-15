@@ -9,9 +9,6 @@ from typing import Iterable, Sequence
 
 from sim_api_wrapper.client import SimApiClient
 from sim_api_wrapper.exceptions import SimApiError
-from sim_api_wrapper.models import User
-
-from .ai_systems import _extract_preferred_email
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +21,6 @@ class UserProjectsMembership:
 
     username: str
     projects: tuple[str, ...]
-    email: str | None = None
 
     @property
     def project_count(self) -> int:
@@ -56,7 +52,7 @@ def collect_user_projects_memberships(
     service: str = "AI",
     test_sample_size: int | None = None,
 ) -> UserProjectsMembershipResult:
-    """Collect users associated with AI system projects and their email addresses."""
+    """Collect users associated with AI system projects."""
 
     result = UserProjectsMembershipResult()
 
@@ -102,11 +98,8 @@ def collect_user_projects_memberships(
 
     resolved_memberships: list[UserProjectsMembership] = []
     for username in sorted(membership_mapping):
-        email = _resolve_email(client, username, result)
         projects = tuple(sorted(membership_mapping[username]))
-        resolved_memberships.append(
-            UserProjectsMembership(username=username, projects=projects, email=email)
-        )
+        resolved_memberships.append(UserProjectsMembership(username=username, projects=projects))
 
     resolved_memberships.sort(key=lambda item: (-item.project_count, item.username))
     result.memberships.extend(resolved_memberships)
@@ -163,35 +156,6 @@ def _extract_project_identifier(group: str) -> str | None:
     return None
 
 
-def _resolve_email(
-    client: SimApiClient,
-    username: str,
-    result: UserProjectsMembershipResult,
-) -> str | None:
-    logger.info("Fetching user record for %s", username)
-    try:
-        user = client.get_user(username)
-    except SimApiError as exc:
-        message = f"Failed to retrieve user {username}: {exc}"
-        logger.warning(message)
-        result.issues.append(message)
-        return None
-
-    if not isinstance(user, User):
-        message = f"Unexpected payload when retrieving user {username}."
-        logger.warning(message)
-        result.issues.append(message)
-        return None
-
-    email = _extract_preferred_email(user)
-    if email:
-        logger.debug("Resolved email for %s: %s", username, email)
-    else:
-        result.issues.append(
-            f"No hauptemail or kontaktemail address available for user {username}."
-        )
-
-    return email
 
 
 __all__ = [
