@@ -7,14 +7,12 @@ from sim_app.user_projects import (
     collect_user_projects_memberships,
 )
 from sim_api_wrapper.exceptions import SimApiError
-from sim_api_wrapper.models import User
 
 
 class FakeClient:
-    def __init__(self, *, groups, members, users):
+    def __init__(self, *, groups, members):
         self._groups = groups
         self._members = members
-        self._users = users
 
     def list_groups(self, service):
         if isinstance(self._groups, Exception):
@@ -27,11 +25,6 @@ class FakeClient:
             raise value
         return value
 
-    def get_user(self, username):
-        value = self._users.get(username)
-        if isinstance(value, Exception):
-            raise value
-        return value
 
 
 def test_collect_user_projects_memberships_success():
@@ -49,36 +42,6 @@ def test_collect_user_projects_memberships_success():
             "a1102-ai-c": ["user3"],
             "b9999-ai-h-mcml": ["user1", "user4"],
         },
-        users={
-            "user1": User(
-                kennung="user1",
-                daten={
-                    "emailadressen": [
-                        {"typ": "hauptemail", "adresse": "user1@example.com"}
-                    ]
-                },
-            ),
-            "user2": User(
-                kennung="user2",
-                daten={
-                    "emailadressen": [
-                        {"typ": "kontaktemail", "adresse": "user2@example.com"}
-                    ]
-                },
-            ),
-            "user3": User(
-                kennung="user3",
-                daten={
-                    "emailadressen": [
-                        {"typ": "hauptemail", "adresse": "user3@example.com"}
-                    ]
-                },
-            ),
-            "user4": User(
-                kennung="user4",
-                daten={"emailadressen": [{"typ": "backup", "adresse": "unused"}]},
-            ),
-        },
     )
 
     result = collect_user_projects_memberships(client)
@@ -93,11 +56,7 @@ def test_collect_user_projects_memberships_success():
     assert result.memberships[1].projects == ("a1101",)
     assert result.memberships[2].projects == ("a1102",)
     assert result.memberships[3].projects == ("b9999",)
-    assert result.memberships[0].email == "user1@example.com"
-    assert result.memberships[3].email is None
-    assert (
-        "No hauptemail or kontaktemail address available for user user4." in result.issues
-    )
+    assert result.issues == []
 
 
 def test_collect_user_projects_memberships_test_sample_size():
@@ -107,20 +66,6 @@ def test_collect_user_projects_memberships_test_sample_size():
             "a1101-ai-c": ["user1"],
             "a1102-ai-c": ["user2"],
             "a1103-ai-c": ["user3"],
-        },
-        users={
-            "user1": User(
-                kennung="user1",
-                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "one"}]},
-            ),
-            "user2": User(
-                kennung="user2",
-                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "two"}]},
-            ),
-            "user3": User(
-                kennung="user3",
-                daten={"emailadressen": [{"typ": "hauptemail", "adresse": "three"}]},
-            ),
         },
     )
 
@@ -134,7 +79,6 @@ def test_collect_user_projects_memberships_handles_group_failure():
     client = FakeClient(
         groups=["a1101-ai-c"],
         members={"a1101-ai-c": SimApiError("boom")},
-        users={},
     )
 
     result = collect_user_projects_memberships(client)
@@ -144,7 +88,7 @@ def test_collect_user_projects_memberships_handles_group_failure():
 
 
 def test_collect_user_projects_memberships_requires_positive_sample():
-    client = FakeClient(groups=["a1101-ai-c"], members={}, users={})
+    client = FakeClient(groups=["a1101-ai-c"], members={})
 
     result = collect_user_projects_memberships(client, test_sample_size=0)
 
@@ -153,7 +97,7 @@ def test_collect_user_projects_memberships_requires_positive_sample():
 
 
 def test_collect_user_projects_memberships_group_listing_failure():
-    client = FakeClient(groups=SimApiError("boom"), members={}, users={})
+    client = FakeClient(groups=SimApiError("boom"), members={})
 
     with pytest.raises(UserProjectsMembershipCollectionError):
         collect_user_projects_memberships(client)
