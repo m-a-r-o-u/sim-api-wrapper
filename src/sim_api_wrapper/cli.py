@@ -17,6 +17,11 @@ from .formatters import emit_delimited, emit_json, emit_plain, emit_yaml, parse_
 class CustomHelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
     """Formatter that keeps newlines and shows argument defaults."""
 
+    def _format_action(self, action: argparse.Action) -> str:
+        if isinstance(action, argparse._SubParsersAction):
+            return ""
+        return super()._format_action(action)
+
 
 COMMAND_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
     (
@@ -132,48 +137,10 @@ def configure_logging(verbosity: int) -> None:
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
 
 
-def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
-    common = argparse.ArgumentParser(add_help=False, formatter_class=CustomHelpFormatter)
-    common.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Override the API base URL.")
-    common.add_argument("--netrc", default=None, help="Path to a netrc file for authentication.")
-    common.add_argument(
-        "--no-netrc",
-        action="store_true",
-        help="Disable automatic loading of ~/.netrc credentials.",
-    )
-    common.add_argument(
-        "--timeout",
-        type=float,
-        default=DEFAULT_TIMEOUT,
-        help="Timeout in seconds for API requests (default: %(default)s).",
-    )
-    common.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="Increase logging verbosity (use -vv for debug logs).",
-    )
-
-    common.add_argument(
-        "--format",
-        choices=("yaml", "plain", "delimited"),
-        default=None,
-        help="Output format for the response (omit for JSON).",
-    )
-    common.add_argument(
-        "--sep",
-        default=",",
-        help="Separator used when formatting delimited lists (default: '%(default)s').",
-    )
-    common.add_argument(
-        "--fields",
-        default=None,
-        help="Comma-separated list of fields to include in the output.",
-    )
-    common._optionals.title = "Global options"
-
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
+        add_help=False,
+        usage="sim-api COMMAND [OPTIONS]",
         description=_build_description(),
         epilog=textwrap.dedent(
             """
@@ -183,17 +150,51 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
               sim-api user --format yaml --fields username,email
             """
         ),
-        parents=[common],
         formatter_class=CustomHelpFormatter,
     )
-    parser._optionals.title = "Help options"
+    parser._optionals.title = "Options"
+    parser.add_argument("-h", "--help", action="help", help="Show this help message and exit")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase logging verbosity (use -vv for debug logs).",
+    )
+    parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Override the API base URL.")
+    parser.add_argument("--netrc", default=None, help="Path to a netrc file for authentication.")
+    parser.add_argument(
+        "--no-netrc",
+        action="store_true",
+        help="Disable automatic loading of ~/.netrc credentials.",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=DEFAULT_TIMEOUT,
+        help="Timeout in seconds for API requests (default: %(default)s).",
+    )
+    parser.add_argument(
+        "--format",
+        choices=("yaml", "plain", "delimited"),
+        default=None,
+        help="Output format (omit for JSON).",
+    )
+    parser.add_argument(
+        "--sep",
+        default=",",
+        help="Separator used when formatting delimited lists (default: '%(default)s').",
+    )
+    parser.add_argument(
+        "--fields",
+        default=None,
+        help="Comma-separated list of fields to include in the output.",
+    )
 
     subparsers = parser.add_subparsers(
         dest="command",
         required=True,
         metavar="COMMAND",
-        title="Commands",
-        help="Run 'sim-api COMMAND --help' to inspect the command's options.",
     )
 
     subparsers.add_parser("environment", help=COMMAND_HELP["environment"], formatter_class=CustomHelpFormatter)
@@ -425,7 +426,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     )
     user.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
-    return parser, common
+    return parser
 
 
 def _stdin_or_values(values: list[str] | None) -> list[str]:
@@ -466,9 +467,8 @@ def _run_for_values(values: list[str], func: Callable[[str], Any]) -> Any:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser, common = build_parser()
-    global_args, remaining = common.parse_known_args(argv)
-    args = parser.parse_args(remaining, namespace=global_args)
+    parser = build_parser()
+    args = parser.parse_args(argv)
     configure_logging(args.verbose)
 
     with SimApiClient(
