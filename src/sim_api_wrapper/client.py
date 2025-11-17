@@ -147,12 +147,11 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
             return [str(item) for item in data]
         raise SimApiError("Unexpected response payload for groups endpoint")
 
-    def get_group_members(self, service: str, group_name: str, *, solve: bool = False) -> List[str]:
+    def get_group_members(self, service: str, group_name: str) -> List[str]:
         """Return the usernames assigned to the specified group for a service."""
 
         endpoint = f"/service/{service}/groups/{group_name}/members"
-        params = {"solve": "true" if solve else "false"}
-        data = self._request_json("GET", endpoint, params=params)
+        data = self._request_json("GET", endpoint)
         if isinstance(data, list):
             return [str(item) for item in data]
         raise SimApiError("Unexpected response payload for group members endpoint")

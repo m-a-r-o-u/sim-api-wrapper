@@ -47,7 +47,7 @@ Common lookups now have dedicated helpers:
 
 - `get_environment()` – inspect the SIM backend state, including quota summaries.
 - `get_service_characteristics(service)` – read the LDAP attributes for a service root group.
-- `get_group_members(service, group_name, solve=False)` – enumerate direct (or resolved) group members.
+- `get_group_members(service, group_name)` – enumerate group members.
 - `get_user_permissions(username)` – expand all permission grants for a SIM identity.
 - `list_exchange_distributions()` / `get_exchange_distribution(name)` – explore Exchange distribution lists.
 
@@ -68,7 +68,6 @@ sim-api service-characteristics AI
 sim-api groups AI
 sim-api group-info AI pn69ju-ai-c
 sim-api group-members AI pn69ju-ai-c
-sim-api group-members AI pn69ju-ai-c --solve
 sim-api group-admins AI pn69ju-ai-c
 sim-api group-rights AI pn69ju-ai-c di38qex
 

@@ -78,7 +78,7 @@ Prefer the terminal? The CLI mirrors the same capabilities so you can inspect da
 code:
 
 ```bash
-sim-api group-members AI pn69ju-ai-c --solve
+sim-api group-members AI pn69ju-ai-c
 ```
 
 Consult the dedicated guide for a full list of commands and output formats.

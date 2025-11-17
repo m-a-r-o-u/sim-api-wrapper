@@ -164,7 +164,7 @@ def test_list_groups(register_response, client: SimApiClient) -> None:
 
 
 def test_get_group_members(register_response, client: SimApiClient) -> None:
-    url = f"{DEFAULT_BASE_URL}/service/AI/groups/pn69ju-ai-c/members?solve=false"
+    url = f"{DEFAULT_BASE_URL}/service/AI/groups/pn69ju-ai-c/members"
     register_response(url, json_data=["di25koy", "di29xub"])
 
     members = client.get_group_members("AI", "pn69ju-ai-c")
