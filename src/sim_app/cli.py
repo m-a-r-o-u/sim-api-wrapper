@@ -27,7 +27,33 @@ _SubParsersAction = getattr(argparse, "_SubParsersAction")
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="High-level helper commands built on top of the SIM API wrapper.",
+        description=(
+            "SIM automation helpers. Use --test <N> to sample and -v/--verbose for logs."
+        ),
+        epilog="Example: sim-app mcml-master-user-emails --test 2 -v",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        usage=(
+            "sim-app [OPTIONS] COMMAND\n\n"
+            "Commands:\n"
+            "  all-user-emails           All AI system user emails\n"
+            "  mcml-user-emails          MCML user emails\n"
+            "  mcml-master-user-emails   MCML master user emails\n"
+            "  user-projects-membership  AI system project memberships"
+        ),
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="count",
+        default=0,
+        help="Increase logging verbosity (use -vv for debug logs).",
+    )
+    parser.add_argument(
+        "--test",
+        dest="test_sample_size",
+        type=int,
+        default=None,
+        help="Process only the first N items for quick runs.",
     )
     parser.add_argument(
         "--base-url",
@@ -50,32 +76,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_TIMEOUT,
         help="Timeout in seconds for API requests.",
     )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="Increase logging verbosity (use -vv for debug logs).",
-    )
-    parser.add_argument(
-        "--test",
-        dest="test_sample_size",
-        type=int,
-        default=None,
-        help=(
-            "Limit SIM app processing to the first N items for quick test runs. "
-            "Applies uniformly across all sim-app commands."
-        ),
-    )
 
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(
+        dest="command", required=True, title="commands", metavar="COMMAND"
+    )
 
     all_users = subparsers.add_parser(
         "all-user-emails",
-        help=(
-            "Collect hauptemail or kontaktemail addresses of all AI system users "
-            "(AI compute and MCML groups)."
-        ),
+        help="All AI system user emails.",
     )
     all_users.add_argument(
         "--service",
@@ -85,7 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcml_users = subparsers.add_parser(
         "mcml-user-emails",
-        help="Collect hauptemail or kontaktemail addresses of AI Systems MCML users.",
+        help="MCML user emails.",
     )
     mcml_users.add_argument(
         "--service",
@@ -95,7 +103,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcml = subparsers.add_parser(
         "mcml-master-user-emails",
-        help="Collect hauptemail or kontaktemail addresses of MCML master users.",
+        help="MCML master user emails.",
     )
     mcml.add_argument(
         "--service",
@@ -105,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     membership = subparsers.add_parser(
         "user-projects-membership",
-        help="Collect AI system user project memberships and associated emails.",
+        help="AI system project memberships and emails.",
     )
     membership.add_argument(
         "--service",
