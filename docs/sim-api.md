@@ -4,23 +4,6 @@
 LRZ SIM platform. This document expands on the quick overview in the project README and highlights
 the most useful workflows.
 
-## Authentication
-
-The client understands two authentication mechanisms and will automatically pick the most secure
-option available when it starts:
-
-1. **Token authentication** – Create a file at `~/.simapi.env` containing a line in the format
-   `SIMAPI_TOKEN=xxxx`. The client will read the token using [`python-dotenv`](https://github.com/theskumar/python-dotenv)
-   and inject the HTTP header `Authorization: Basic <SIMAPI_TOKEN>` for every request. This method
-   takes precedence when the file exists and contains a valid token.
-2. **netrc authentication** – If no token is available (or the token file is malformed), the client
-   falls back to credentials stored in a `.netrc` file (defaulting to `~/.netrc`). You can still pass
-   a custom path when instantiating the client or via the CLI's `--netrc` option.
-
-If neither mechanism is configured, requests are issued without authentication and the API will
-likely reject them. Clear log messages are emitted whenever authentication details are missing or
-need attention.
-
 ## Python usage
 
 ```python
@@ -112,8 +95,13 @@ sim-api person 00000000001F17E0
 sim-api user di38qex
 ```
 
+### General CLI options
+
 Use `--help` to inspect all options. The CLI respects `--netrc` and `--no-netrc` if you need to
-control authentication explicitly. Response formatting is controlled by `--format`:
+control authentication explicitly. Response formatting is primarily governed by `--format`; the
+general flags come first, followed by dedicated sections for `--format` and `--fields`.
+
+### Output formats with `--format`
 
 - **Default JSON** – omit `--format` to receive pretty-printed JSON that is easy to pipe into tools
   such as `jq`. The existing `--fields` selector works the same way across all formats.
@@ -123,11 +111,10 @@ control authentication explicitly. Response formatting is controlled by `--forma
   automatically falls back to the YAML view. Lists (including nested ones) are flattened, which makes
   it perfect for shell pipelines.
 - `--format delimited` – export rows via Python's CSV writer. Lists are rendered as single delimited
-  values and dictionaries default to JSON strings for compatibility.
+  values and dictionaries default to JSON strings for compatibility. Use `--sep` to swap the
+  delimiter (comma by default; escape sequences such as `\t` are supported).
 
-The `--sep` option customises the delimiter for `delimited` output only (defaults to a comma, but
-escape sequences such as `\t` are supported). Combine all formats with `--fields` to project or
-filter values before rendering.
+Combine all formats with `--fields` to project or filter values before rendering.
 
 ### Selecting fields with JMESPath-like expressions
 
