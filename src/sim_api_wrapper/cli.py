@@ -467,9 +467,94 @@ def _run_for_values(values: list[str], func: Callable[[str], Any]) -> Any:
     return results
 
 
+def _normalise_global_options(
+    parser: argparse.ArgumentParser, argv: list[str] | None
+) -> list[str]:
+    """Allow global options to appear either before or after the subcommand."""
+
+    arguments = list(argv) if argv is not None else sys.argv[1:]
+    if not arguments:
+        return arguments
+
+    subcommands: set[str] = set()
+    for action in parser._actions:  # pragma: no cover - argparse internals are stable
+        if isinstance(action, argparse._SubParsersAction):
+            subcommands.update(action.choices)
+
+    command_index = next(
+        (index for index, token in enumerate(arguments) if token in subcommands),
+        None,
+    )
+    if command_index is None:
+        return arguments
+
+    prefix = arguments[:command_index]
+    command_and_tail = arguments[command_index:]
+
+    reordered_globals: list[str] = []
+    remainder: list[str] = [command_and_tail[0]]
+
+    index = 1
+    while index < len(command_and_tail):
+        token = command_and_tail[index]
+
+        consumed = _consume_global_option(token, command_and_tail, index, reordered_globals)
+        if consumed:
+            index += consumed
+            continue
+
+        remainder.append(token)
+        index += 1
+
+    return prefix + reordered_globals + remainder
+
+
+def _consume_global_option(
+    token: str, command_and_tail: list[str], index: int, reordered_globals: list[str]
+) -> int:
+    """Append recognised global options to ``reordered_globals``.
+
+    Returns the number of tokens consumed (including ``token``) if the option is
+    recognised, otherwise returns ``0``.
+    """
+
+    options_with_values = {
+        "--base-url": 1,
+        "--netrc": 1,
+        "--timeout": 1,
+        "--format": 1,
+        "--sep": 1,
+        "--fields": 1,
+    }
+    flag_options = {"--no-netrc"}
+
+    for option, value_count in options_with_values.items():
+        if token == option:
+            reordered_globals.append(token)
+            for offset in range(1, value_count + 1):
+                if index + offset < len(command_and_tail):
+                    reordered_globals.append(command_and_tail[index + offset])
+            return 1 + value_count
+        if value_count and token.startswith(f"{option}="):
+            reordered_globals.append(token)
+            return 1
+
+    if token in flag_options or _is_verbose_short_option(token):
+        reordered_globals.append(token)
+        return 1
+
+    return 0
+
+
+def _is_verbose_short_option(token: str) -> bool:
+    """Return whether ``token`` represents the ``-v``/``-vv`` verbosity flags."""
+
+    return token.startswith("-") and token.lstrip("-") and set(token.lstrip("-")) == {"v"}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(_normalise_global_options(parser, argv))
     configure_logging(args.verbose)
 
     with SimApiClient(
