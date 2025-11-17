@@ -153,34 +153,26 @@ great source of inspiration for constructing practical selectors.
 sim-api institution 0000000000E4EE4B | jq '.anschriften[0].ort'
 
 # Pick specific fields in a delimited export
-sim-api institution 0000000000E4EE4B \
-  --format delimited --sep '\t' \
-  --fields lrz_id,name,bezeichnung,status \
+sim-api institution 0000000000E4EE4B --format plain --fields lrz_id,name,bezeichnung,status \
 | tee /tmp/inst.tsv
 
 # Human-friendly YAML for nested structures
-sim-api institution 0000000000E4EE4B \
-  --format yaml \
-  --fields lrz_id,name,bezeichnung,status
+sim-api institution 0000000000E4EE4B --format yaml --fields lrz_id,name,bezeichnung,status
 
 # Extract nested address fields
-sim-api institution 0000000000E4EE4B \
-  --format delimited --sep '\t' \
+sim-api institution 0000000000E4EE4B --format plain \
   --fields anschriften[0].strasse,anschriften[0].plz,anschriften[0].ort,anschriften[0].land
 
 # Filter and project using JMESPath and return the first match as plain text
-sim-api user di38qex \
-  --format plain \
+sim-api user di38qex --format plain \
   --fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"
 
 # Combine multiple JMESPath expressions when exporting CSV
-sim-api user di38qex \
-  --format delimited --sep ';' \
+sim-api user di38qex --format plain \
   --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0],rollen[?status=='aktiv'].bezeichnung"
 
 # Stream identifiers line by line for shell pipelines
-sim-api groups AI --format plain \
-| sim-api group-info AI --format delimited --sep '\t' --fields id,owner,count
+sim-api groups AI --format plain | sim-api group-info AI --format plain --fields id,owner,count
 ```
 
 ## Extending the client
