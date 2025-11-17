@@ -147,7 +147,7 @@ def build_parser() -> argparse.ArgumentParser:
             Examples:
               sim-api environment
               sim-api group-members AI my-group
-              sim-api user --format yaml --fields username,email
+              sim-api user USERID --format yaml --fields username,email
             """
         ),
         formatter_class=CustomHelpFormatter,
@@ -177,8 +177,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--format",
         choices=("yaml", "plain", "delimited"),
-        default=None,
-        help="Output format (omit for JSON).",
+        default="json",
+        metavar="FORMAT",
+        help="Output format like {yaml,plain,delimited}.",
     )
     parser.add_argument(
         "--sep",
