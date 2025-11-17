@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from typing import List
 
 import pytest
@@ -208,3 +209,21 @@ def test_user_projects_membership_histogram_output(
         "1 1",
         "2 1",
     ]
+
+
+def test_user_projects_membership_help_usage(monkeypatch: pytest.MonkeyPatch):
+    parser = cli.build_parser()
+    parser.prog = "sim-app"
+
+    sub_action = next(
+        action
+        for action in parser._actions
+        if isinstance(action, argparse._SubParsersAction)
+    )
+    membership_parser = sub_action.choices["user-projects-membership"]
+
+    assert (
+        membership_parser.format_usage()
+        == "usage: sim-app user-projects-membership [OPTIONS] [-h]"
+        " [--service SERVICE] [--histogram]\n"
+    )

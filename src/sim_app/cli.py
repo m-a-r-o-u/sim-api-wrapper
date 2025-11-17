@@ -31,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="Example: sim-app mcml-master-user-emails --test 2 -v",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         usage="sim-app COMMAND [OPTIONS]",
+        prog="sim-app",
     )
     parser.add_argument(
         "-v",
@@ -106,6 +107,7 @@ def build_parser() -> argparse.ArgumentParser:
     membership = subparsers.add_parser(
         "user-projects-membership",
         help="AI system project memberships and emails.",
+        prog=f"{parser.prog} user-projects-membership [OPTIONS]",
     )
     membership.add_argument(
         "--service",
