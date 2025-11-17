@@ -4,17 +4,17 @@ A lightweight, extensible Python wrapper for the [LRZ SIM API](https://simapi.si
 client makes it straightforward to retrieve information about projects, groups, institutions,
 people and users while keeping the implementation easy to read and extend.
 
-> 📚 **Documentation hub**
+> **Documentation hub**
 >
 > - [SIM API client & CLI guide](docs/sim-api.md)
 > - [SIM App automation playbook](docs/sim-app.md)
 
 ## Features
 
-- 🔌 **Extensible** – add new endpoints by implementing a single method.
-- ♻️ **Reusable** – ship it as a Python package and reuse it across projects.
-- 📝 **Understandable** – strong typing via dataclasses and consistent error handling.
-- 🛠️ **Tooling friendly** – comes with tests, logging and a CLI for quick inspection.
+- **Extensible** – add new endpoints by implementing a single method.
+- **Reusable** – ship it as a Python package and reuse it across projects.
+- **Understandable** – strong typing via dataclasses and consistent error handling.
+- **Tooling friendly** – comes with tests, logging and a CLI for quick inspection.
 
 ## Installation
 
