@@ -352,7 +352,7 @@ def _run_user_projects_membership(
     if histogram:
         print("# Number of Projects - Number of Users")
         histogram_data = result.build_histogram()
-        for project_count, user_count in histogram_data.items():
+        for project_count, user_count in sorted(histogram_data.items()):
             print(f"{project_count} {user_count}")
         return 0 if result.memberships else 1
 

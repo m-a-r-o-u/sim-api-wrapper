@@ -7,6 +7,7 @@ from typing import List
 import pytest
 
 from sim_app import cli
+from sim_app.user_projects import UserProjectsMembership, UserProjectsMembershipResult
 
 
 class DummyClient:
@@ -183,3 +184,27 @@ def test_user_projects_membership_respects_test_flag(
     assert exit_code == 0
     assert captured == {"service": "AI", "test": 5, "histogram": False}
     assert stub_client[0].closed is True
+
+
+def test_user_projects_membership_histogram_output(
+    monkeypatch: pytest.MonkeyPatch, stub_client, capsys: pytest.CaptureFixture[str]
+):
+    memberships_result = UserProjectsMembershipResult(
+        memberships=[
+            UserProjectsMembership(username="user1", projects=("project-a", "project-b")),
+            UserProjectsMembership(username="user2", projects=("project-c",)),
+        ]
+    )
+
+    monkeypatch.setattr(cli, "collect_user_projects_memberships", lambda *_, **__: memberships_result)
+
+    exit_code = cli.main(["user-projects-membership", "--histogram"])
+
+    assert exit_code == 0
+    assert stub_client[0].closed is True
+    output = capsys.readouterr().out.splitlines()
+    assert output == [
+        "# Number of Projects - Number of Users",
+        "1 1",
+        "2 1",
+    ]
