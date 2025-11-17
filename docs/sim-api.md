@@ -167,10 +167,6 @@ sim-api institution 0000000000E4EE4B --format plain \
 sim-api user di38qex --format plain \
   --fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"
 
-# Combine multiple JMESPath expressions when exporting CSV
-sim-api user di38qex --format plain \
-  --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0],rollen[?status=='aktiv'].bezeichnung"
-
 # Stream identifiers line by line for shell pipelines
 sim-api groups AI --format plain | sim-api group-info AI --format plain --fields id,owner,count
 ```
