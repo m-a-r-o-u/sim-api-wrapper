@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import codecs
 import logging
+import sys
 import textwrap
 from dataclasses import asdict, is_dataclass
 from typing import Any, Callable
@@ -206,12 +207,12 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         help=COMMAND_HELP["service-characteristics"],
         formatter_class=CustomHelpFormatter,
     )
-    characteristics.add_argument("service", help="Service identifier, e.g. AI.")
+    characteristics.add_argument("service", nargs="*", help="Service identifier, e.g. AI.")
 
     groups = subparsers.add_parser(
         "groups", help=COMMAND_HELP["groups"], formatter_class=CustomHelpFormatter
     )
-    groups.add_argument("service", help="Service identifier, e.g. AI.")
+    groups.add_argument("service", nargs="*", help="Service identifier, e.g. AI.")
 
     members = subparsers.add_parser(
         "group-members",
@@ -219,7 +220,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         formatter_class=CustomHelpFormatter,
     )
     members.add_argument("service", help="Service identifier, e.g. AI.")
-    members.add_argument("group_name", help="Name of the group to inspect.")
+    members.add_argument("group_name", nargs="*", help="Name of the group to inspect.")
     members.add_argument(
         "--solve",
         action="store_true",
@@ -230,13 +231,13 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         "group-admins", help=COMMAND_HELP["group-admins"], formatter_class=CustomHelpFormatter
     )
     admins.add_argument("service", help="Service identifier, e.g. AI.")
-    admins.add_argument("group_name", help="Name of the group to inspect.")
+    admins.add_argument("group_name", nargs="*", help="Name of the group to inspect.")
 
     group_info = subparsers.add_parser(
         "group-info", help=COMMAND_HELP["group-info"], formatter_class=CustomHelpFormatter
     )
     group_info.add_argument("service", help="Service identifier, e.g. AI.")
-    group_info.add_argument("group_name", help="Name of the group to inspect.")
+    group_info.add_argument("group_name", nargs="*", help="Name of the group to inspect.")
 
     group_rights = subparsers.add_parser(
         "group-rights",
@@ -245,7 +246,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     )
     group_rights.add_argument("service", help="Service identifier, e.g. AI.")
     group_rights.add_argument("group_name", help="Name of the group to inspect.")
-    group_rights.add_argument("username", help="SIM username / Kennung.")
+    group_rights.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     subparsers.add_parser(
         "permissions-metadata",
@@ -258,7 +259,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         help=COMMAND_HELP["user-permissions"],
         formatter_class=CustomHelpFormatter,
     )
-    user_permissions.add_argument("username", help="SIM username / Kennung.")
+    user_permissions.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     check_member = subparsers.add_parser(
         "is-group-member",
@@ -267,7 +268,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     )
     check_member.add_argument("service", help="Service identifier, e.g. AI.")
     check_member.add_argument("group_name", help="Name of the group to inspect.")
-    check_member.add_argument("username", help="SIM username / Kennung.")
+    check_member.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     check_master = subparsers.add_parser(
         "is-group-master",
@@ -276,7 +277,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     )
     check_master.add_argument("service", help="Service identifier, e.g. AI.")
     check_master.add_argument("group_name", help="Name of the group to inspect.")
-    check_master.add_argument("username", help="SIM username / Kennung.")
+    check_master.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     check_admin = subparsers.add_parser(
         "is-group-admin",
@@ -285,28 +286,28 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     )
     check_admin.add_argument("service", help="Service identifier, e.g. AI.")
     check_admin.add_argument("group_name", help="Name of the group to inspect.")
-    check_admin.add_argument("username", help="SIM username / Kennung.")
+    check_admin.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     master_users = subparsers.add_parser(
         "project-master-users",
         help=COMMAND_HELP["project-master-users"],
         formatter_class=CustomHelpFormatter,
     )
-    master_users.add_argument("project", help="Project identifier, e.g. pn69ju.")
+    master_users.add_argument("project", nargs="*", help="Project identifier, e.g. pn69ju.")
 
     service_projects = subparsers.add_parser(
         "service-projects",
         help=COMMAND_HELP["service-projects"],
         formatter_class=CustomHelpFormatter,
     )
-    service_projects.add_argument("service", help="Service identifier, e.g. AI.")
+    service_projects.add_argument("service", nargs="*", help="Service identifier, e.g. AI.")
 
     org_projects = subparsers.add_parser(
         "org-projects",
         help=COMMAND_HELP["org-projects"],
         formatter_class=CustomHelpFormatter,
     )
-    org_projects.add_argument("organisation", help="Organisation identifier, e.g. TUM.")
+    org_projects.add_argument("organisation", nargs="*", help="Organisation identifier, e.g. TUM.")
 
     org_project_details = subparsers.add_parser(
         "org-project-details",
@@ -314,7 +315,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         formatter_class=CustomHelpFormatter,
     )
     org_project_details.add_argument("organisation", help="Organisation identifier, e.g. TUM.")
-    org_project_details.add_argument("project", help="Project identifier, e.g. uk431.")
+    org_project_details.add_argument("project", nargs="*", help="Project identifier, e.g. uk431.")
 
     subparsers.add_parser(
         "org-types", help=COMMAND_HELP["org-types"], formatter_class=CustomHelpFormatter
@@ -323,7 +324,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
     vweb = subparsers.add_parser(
         "vweb-user", help=COMMAND_HELP["vweb-user"], formatter_class=CustomHelpFormatter
     )
-    vweb.add_argument("username", help="SIM username / Kennung.")
+    vweb.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     subparsers.add_parser(
         "personal-homepages",
@@ -337,7 +338,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         formatter_class=CustomHelpFormatter,
     )
     service_admin.add_argument("service", help="Service identifier, e.g. AI.")
-    service_admin.add_argument("username", help="SIM username / Kennung.")
+    service_admin.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     managed_groups = subparsers.add_parser(
         "managed-groups",
@@ -345,7 +346,7 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         formatter_class=CustomHelpFormatter,
     )
     managed_groups.add_argument("service", help="Service identifier, e.g. AI.")
-    managed_groups.add_argument("username", help="SIM username / Kennung.")
+    managed_groups.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     memberships = subparsers.add_parser(
         "group-memberships",
@@ -353,14 +354,14 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         formatter_class=CustomHelpFormatter,
     )
     memberships.add_argument("service", help="Service identifier, e.g. AI.")
-    memberships.add_argument("username", help="SIM username / Kennung.")
+    memberships.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     user_services = subparsers.add_parser(
         "user-services",
         help=COMMAND_HELP["user-services"],
         formatter_class=CustomHelpFormatter,
     )
-    user_services.add_argument("username", help="SIM username / Kennung.")
+    user_services.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     subparsers.add_parser(
         "password-metadata",
@@ -373,14 +374,14 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         help=COMMAND_HELP["user-password"],
         formatter_class=CustomHelpFormatter,
     )
-    user_password.add_argument("username", help="SIM username / Kennung.")
+    user_password.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     password_pwned = subparsers.add_parser(
         "is-password-pwned",
         help=COMMAND_HELP["is-password-pwned"],
         formatter_class=CustomHelpFormatter,
     )
-    password_pwned.add_argument("username", help="SIM username / Kennung.")
+    password_pwned.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     subparsers.add_parser(
         "exchange-distributions",
@@ -393,38 +394,75 @@ def build_parser() -> tuple[argparse.ArgumentParser, argparse.ArgumentParser]:
         help=COMMAND_HELP["exchange-distribution"],
         formatter_class=CustomHelpFormatter,
     )
-    exchange_distribution.add_argument("list_name", help="Distribution list identifier.")
+    exchange_distribution.add_argument("list_name", nargs="*", help="Distribution list identifier.")
 
     exchange_admins = subparsers.add_parser(
         "exchange-admins",
         help=COMMAND_HELP["exchange-admins"],
         formatter_class=CustomHelpFormatter,
     )
-    exchange_admins.add_argument("list_name", help="Distribution list identifier.")
+    exchange_admins.add_argument("list_name", nargs="*", help="Distribution list identifier.")
 
     project = subparsers.add_parser(
         "project-institution",
         help=COMMAND_HELP["project-institution"],
         formatter_class=CustomHelpFormatter,
     )
-    project.add_argument("project_name", help="Project identifier, e.g. pn69ju.")
+    project.add_argument("project_name", nargs="*", help="Project identifier, e.g. pn69ju.")
 
     institution = subparsers.add_parser(
         "institution", help=COMMAND_HELP["institution"], formatter_class=CustomHelpFormatter
     )
-    institution.add_argument("institution_id", help="Institution LRZ identifier.")
+    institution.add_argument("institution_id", nargs="*", help="Institution LRZ identifier.")
 
     person = subparsers.add_parser(
         "person", help=COMMAND_HELP["person"], formatter_class=CustomHelpFormatter
     )
-    person.add_argument("person_id", help="LRZ identifier for the person.")
+    person.add_argument("person_id", nargs="*", help="LRZ identifier for the person.")
 
     user = subparsers.add_parser(
         "user", help=COMMAND_HELP["user"], formatter_class=CustomHelpFormatter
     )
-    user.add_argument("username", help="SIM username / Kennung.")
+    user.add_argument("username", nargs="*", help="SIM username / Kennung.")
 
     return parser, common
+
+
+def _stdin_or_values(values: list[str] | None) -> list[str]:
+    """Return provided values or read newline separated tokens from stdin."""
+
+    provided = [value for value in values or [] if value]
+    if provided:
+        return provided
+
+    if not sys.stdin.isatty():
+        piped = [line.strip() for line in sys.stdin if line.strip()]
+        if piped:
+            return piped
+
+    return []
+
+
+def _require_inputs(
+    values: list[str] | None, parser: argparse.ArgumentParser, placeholder: str
+) -> list[str]:
+    """Ensure at least one value is available from arguments or stdin."""
+
+    resolved = _stdin_or_values(values)
+    if not resolved:
+        parser.error(
+            f"{placeholder} is required (provide an argument or pipe values via stdin)."
+        )
+    return resolved
+
+
+def _run_for_values(values: list[str], func: Callable[[str], Any]) -> Any:
+    """Execute a function for each value and collapse single results."""
+
+    results = [func(value) for value in values]
+    if len(results) == 1:
+        return results[0]
+    return results
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -444,69 +482,132 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "current-user":
             result = client.get_current_user()
         elif args.command == "service-characteristics":
-            result = client.get_service_characteristics(args.service)
+            services = _require_inputs(args.service, parser, "service")
+            result = _run_for_values(
+                services, lambda service: client.get_service_characteristics(service)
+            )
         elif args.command == "groups":
-            result = client.list_groups(args.service)
+            services = _require_inputs(args.service, parser, "service")
+            result = _run_for_values(services, client.list_groups)
         elif args.command == "group-members":
-            result = client.get_group_members(args.service, args.group_name, solve=args.solve)
+            group_names = _require_inputs(args.group_name, parser, "group_name")
+            result = _run_for_values(
+                group_names,
+                lambda group_name: client.get_group_members(
+                    args.service, group_name, solve=args.solve
+                ),
+            )
         elif args.command == "group-admins":
-            result = client.get_group_admins(args.service, args.group_name)
+            group_names = _require_inputs(args.group_name, parser, "group_name")
+            result = _run_for_values(
+                group_names, lambda group_name: client.get_group_admins(args.service, group_name)
+            )
         elif args.command == "group-info":
-            result = client.get_group_details(args.service, args.group_name)
+            group_names = _require_inputs(args.group_name, parser, "group_name")
+            result = _run_for_values(
+                group_names, lambda group_name: client.get_group_details(args.service, group_name)
+            )
         elif args.command == "group-rights":
-            result = client.get_group_rights(args.service, args.group_name, args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(
+                usernames,
+                lambda username: client.get_group_rights(
+                    args.service, args.group_name, username
+                ),
+            )
         elif args.command == "permissions-metadata":
             result = client.get_permissions_metadata()
         elif args.command == "user-permissions":
-            result = client.get_user_permissions(args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(usernames, client.get_user_permissions)
         elif args.command == "is-group-member":
-            result = client.is_group_member(args.service, args.group_name, args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(
+                usernames,
+                lambda username: client.is_group_member(args.service, args.group_name, username),
+            )
         elif args.command == "is-group-master":
-            result = client.is_group_master_user(args.service, args.group_name, args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(
+                usernames,
+                lambda username: client.is_group_master_user(
+                    args.service, args.group_name, username
+                ),
+            )
         elif args.command == "is-group-admin":
-            result = client.is_group_admin(args.service, args.group_name, args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(
+                usernames,
+                lambda username: client.is_group_admin(args.service, args.group_name, username),
+            )
         elif args.command == "project-master-users":
-            result = client.get_project_master_users(args.project)
+            projects = _require_inputs(args.project, parser, "project")
+            result = _run_for_values(projects, client.get_project_master_users)
         elif args.command == "service-projects":
-            result = client.list_service_projects(args.service)
+            services = _require_inputs(args.service, parser, "service")
+            result = _run_for_values(services, client.list_service_projects)
         elif args.command == "org-projects":
-            result = client.list_org_projects(args.organisation)
+            organisations = _require_inputs(args.organisation, parser, "organisation")
+            result = _run_for_values(organisations, client.list_org_projects)
         elif args.command == "org-project-details":
-            result = client.get_org_project_details(args.organisation, args.project)
+            projects = _require_inputs(args.project, parser, "project")
+            result = _run_for_values(
+                projects,
+                lambda project: client.get_org_project_details(args.organisation, project),
+            )
         elif args.command == "org-types":
             result = client.list_org_types()
         elif args.command == "vweb-user":
-            result = client.get_vweb_user(args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(usernames, client.get_vweb_user)
         elif args.command == "personal-homepages":
             result = client.list_personal_homepages()
         elif args.command == "is-service-admin":
-            result = client.is_service_admin(args.service, args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(
+                usernames, lambda username: client.is_service_admin(args.service, username)
+            )
         elif args.command == "managed-groups":
-            result = client.list_managed_groups(args.service, args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(
+                usernames, lambda username: client.list_managed_groups(args.service, username)
+            )
         elif args.command == "group-memberships":
-            result = client.list_group_memberships(args.service, args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(
+                usernames, lambda username: client.list_group_memberships(args.service, username)
+            )
         elif args.command == "user-services":
-            result = client.list_user_services(args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(usernames, client.list_user_services)
         elif args.command == "password-metadata":
             result = client.get_password_metadata()
         elif args.command == "user-password":
-            result = client.get_user_password_metadata(args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(usernames, client.get_user_password_metadata)
         elif args.command == "is-password-pwned":
-            result = client.is_password_pwned(args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(usernames, client.is_password_pwned)
         elif args.command == "exchange-distributions":
             result = client.list_exchange_distributions()
         elif args.command == "exchange-distribution":
-            result = client.get_exchange_distribution(args.list_name)
+            list_names = _require_inputs(args.list_name, parser, "list_name")
+            result = _run_for_values(list_names, client.get_exchange_distribution)
         elif args.command == "exchange-admins":
-            result = client.get_exchange_distribution_admins(args.list_name)
+            list_names = _require_inputs(args.list_name, parser, "list_name")
+            result = _run_for_values(list_names, client.get_exchange_distribution_admins)
         elif args.command == "project-institution":
-            result = client.get_project_institution_links(args.project_name)
+            projects = _require_inputs(args.project_name, parser, "project_name")
+            result = _run_for_values(projects, client.get_project_institution_links)
         elif args.command == "institution":
-            result = client.get_institution(args.institution_id)
+            institutions = _require_inputs(args.institution_id, parser, "institution_id")
+            result = _run_for_values(institutions, client.get_institution)
         elif args.command == "person":
-            result = client.get_person(args.person_id)
+            persons = _require_inputs(args.person_id, parser, "person_id")
+            result = _run_for_values(persons, client.get_person)
         elif args.command == "user":
-            result = client.get_user(args.username)
+            usernames = _require_inputs(args.username, parser, "username")
+            result = _run_for_values(usernames, client.get_user)
         else:  # pragma: no cover - argparse ensures this is unreachable
             parser.error(f"Unknown command: {args.command}")
 
