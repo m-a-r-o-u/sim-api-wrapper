@@ -223,11 +223,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     members.add_argument("service", help="Service identifier, e.g. AI.")
     members.add_argument("group_name", nargs="*", help="Name of the group to inspect.")
-    members.add_argument(
-        "--solve",
-        action="store_true",
-        help="Resolve nested group memberships via the 'solve' query parameter.",
-    )
 
     admins = subparsers.add_parser(
         "group-admins", help=COMMAND_HELP["group-admins"], formatter_class=CustomHelpFormatter
@@ -578,10 +573,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "group-members":
             group_names = _require_inputs(args.group_name, parser, "group_name")
             result = _run_for_values(
-                group_names,
-                lambda group_name: client.get_group_members(
-                    args.service, group_name, solve=args.solve
-                ),
+                group_names, lambda group_name: client.get_group_members(args.service, group_name)
             )
         elif args.command == "group-admins":
             group_names = _require_inputs(args.group_name, parser, "group_name")

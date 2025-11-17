@@ -17,10 +17,9 @@ class DummyClient:
     def __exit__(self, *exc_info):
         self.closed = True
 
-    def get_group_members(self, service: str, group_name: str, solve: bool = False):
+    def get_group_members(self, service: str, group_name: str):
         self.service = service
         self.group_name = group_name
-        self.solve = solve
         return ["user-a", "user-b"]
 
 
@@ -42,5 +41,4 @@ def test_global_format_flag_after_subcommand(monkeypatch: pytest.MonkeyPatch, ca
 
     assert instances[0].service == "AI"
     assert instances[0].group_name == "pn69ju"
-    assert instances[0].solve is False
     assert instances[0].closed is True
