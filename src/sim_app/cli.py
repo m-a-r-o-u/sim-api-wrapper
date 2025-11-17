@@ -27,19 +27,10 @@ _SubParsersAction = getattr(argparse, "_SubParsersAction")
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description=(
-            "SIM automation helpers. Use --test <N> to sample and -v/--verbose for logs."
-        ),
+        description=("Use --test <N> to sample and -v/--verbose for logs."),
         epilog="Example: sim-app mcml-master-user-emails --test 2 -v",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        usage=(
-            "sim-app [OPTIONS] COMMAND\n\n"
-            "Commands:\n"
-            "  all-user-emails           All AI system user emails\n"
-            "  mcml-user-emails          MCML user emails\n"
-            "  mcml-master-user-emails   MCML master user emails\n"
-            "  user-projects-membership  AI system project memberships"
-        ),
+        usage="sim-app COMMAND [OPTIONS]",
     )
     parser.add_argument(
         "-v",
@@ -51,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--test",
         dest="test_sample_size",
+        metavar="N_SAMPLES",
         type=int,
         default=None,
         help="Process only the first N items for quick runs.",
