@@ -180,7 +180,7 @@ sim-api user di38qex \
 
 # Stream identifiers line by line for shell pipelines
 sim-api groups AI --format plain \
-| xargs -n1 -I{} sim-api group-info {} --format delimited --sep '\t' --fields id,owner,count
+| sim-api group-info AI --format delimited --sep '\t' --fields id,owner,count
 ```
 
 ## Extending the client
