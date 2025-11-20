@@ -103,34 +103,26 @@ general flags come first, followed by dedicated sections for `--format` and `--f
 
 ### Output formats with `--format`
 
-- **Default JSON** – omit `--format` to receive pretty-printed JSON that is easy to pipe into tools
-  such as `jq`. The existing `--fields` selector works the same way across all formats.
-- `--format yaml` – produce valid YAML that can be copied into configuration files while keeping the
-  nested structure intact.
-- `--format plain` – emit newline separated values. When the payload is a mapping, the formatter
-  automatically falls back to the YAML view. Lists (including nested ones) are flattened, which makes
-  it perfect for shell pipelines.
-- `--format delimited` – export rows via Python's CSV writer. Lists are rendered as single delimited
-  values and dictionaries default to JSON strings for compatibility. Use `--sep` to swap the
-  delimiter (comma by default; escape sequences such as `\t` are supported).
+| Flag | Purpose |
+| --- | --- |
+| *(default)* | Pretty JSON; works with `--fields` and is easy to pipe into `jq`. |
+| `--format yaml` | Valid YAML suitable for config files; preserves nesting. |
+| `--format plain` | Newline-separated values; maps fall back to YAML, lists (even nested) are flattened for shell pipelines. |
+| `--format delimited` | CSV-style rows; lists become single delimited values, dictionaries default to JSON strings; tweak delimiter with `--sep` (comma default, escapes like `\t` supported). |
 
-Combine all formats with `--fields` to project or filter values before rendering.
+Combine any format with `--fields` to project or filter before rendering.
 
 ### Selecting fields with JMESPath-like expressions
 
-The `--fields` option understands a JMESPath-inspired syntax, so you can use filters, projections
-and pipes to extract exactly the values you care about. The parser keeps commas inside parentheses
-or string literals intact, making it safe to pass complex expressions without additional quoting.
+The `--fields` flag accepts a JMESPath-inspired syntax for filters, projections and pipes; commas inside parentheses or strings are preserved, so complex expressions pass through safely.
 
-- Access nested properties: `--fields daten.emailadressen[0].adresse`
-- Apply string filters via `contains`: `--fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')]"`
-- Chain projections with the pipe operator: `--fields "daten.emailadressen[].adresse | [0]"`
-- Reduce to a single value in streaming output: `--format plain --fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"`
-- Extract multiple unrelated values at once: `--fields "daten.adressen[].ort, rollen[?contains(status,'aktiv')].kennung"`
+- Nested property access: `--fields daten.emailadressen[0].adresse`
+- String filters with `contains`: `--fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')]"`
+- Chained projections: `--fields "daten.emailadressen[].adresse | [0]"`
+- Single value for streaming output: `--format plain --fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"`
+- Multiple unrelated values: `--fields "daten.adressen[].ort, rollen[?contains(status,'aktiv')].kennung"`
 
-Need a refresher? The [JMESPath tutorial](https://jmespath.org/tutorial.html) explains the full
-syntax in depth, and while the CLI implements the most commonly used parts today, the examples are a
-great source of inspiration for constructing practical selectors.
+Need more examples? The [JMESPath tutorial](https://jmespath.org/tutorial.html) covers the full syntax and inspires practical selectors.
 
 ### Formatting examples
 
