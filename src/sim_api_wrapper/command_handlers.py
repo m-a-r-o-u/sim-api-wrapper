@@ -13,9 +13,10 @@ from __future__ import annotations
 
 import argparse
 import sys
-from typing import Any, Callable
+from typing import Any, Callable, Sequence
 
 from .client import SimApiClient
+from .commands import COMMAND_SPECS, CommandArg, CommandSpec
 
 CommandHandler = Callable[[argparse.Namespace, SimApiClient, argparse.ArgumentParser], Any]
 
@@ -56,142 +57,59 @@ def _run_for_values(values: list[str], func: Callable[[str], Any]) -> Any:
 
 
 def build_command_handlers() -> dict[str, CommandHandler]:
-    """Construct the mapping of command names to handler callables.
+    """Construct the mapping of command names to handler callables."""
 
-    The resulting dictionary lets the CLI dispatch a parsed command name to
-    the appropriate callable without hard-coding the logic inline. This is a
-    straightforward factory: ``build_command_handlers`` returns a fresh
-    mapping each time it is called, which keeps handler setup isolated and
-    easy to inspect.
+    return {spec.name: _build_handler(spec) for spec in COMMAND_SPECS}
 
-    Usage example::
 
-        handlers = build_command_handlers()
-        handler = handlers[args.command]
-        result = handler(args, client, parser)
+def _build_handler(spec: CommandSpec) -> CommandHandler:
+    streaming_arg = _streaming_arg(spec.args)
 
-    Each handler takes ``argparse`` arguments plus an active
-    :class:`SimApiClient` instance and returns raw data, leaving formatting to
-    the caller.
-    """
+    def handler(args: argparse.Namespace, client: SimApiClient, parser: argparse.ArgumentParser) -> Any:
+        method = getattr(client, spec.client_method)
 
-    return {
-        "environment": lambda args, client, parser: client.get_environment(),
-        "current-user": lambda args, client, parser: client.get_current_user(),
-        "service-characteristics": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.service, parser, "service"),
-            lambda service: client.get_service_characteristics(service),
-        ),
-        "groups": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.service, parser, "service"),
-            client.list_groups,
-        ),
-        "group-members": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.group_name, parser, "group_name"),
-            lambda group_name: client.get_group_members(args.service, group_name),
-        ),
-        "group-admins": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.group_name, parser, "group_name"),
-            lambda group_name: client.get_group_admins(args.service, group_name),
-        ),
-        "group-info": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.group_name, parser, "group_name"),
-            lambda group_name: client.get_group_details(args.service, group_name),
-        ),
-        "group-rights": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            lambda username: client.get_group_rights(args.service, args.group_name, username),
-        ),
-        "permissions-metadata": lambda args, client, parser: client.get_permissions_metadata(),
-        "user-permissions": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            client.get_user_permissions,
-        ),
-        "is-group-member": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            lambda username: client.is_group_member(args.service, args.group_name, username),
-        ),
-        "is-group-master": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            lambda username: client.is_group_master_user(args.service, args.group_name, username),
-        ),
-        "is-group-admin": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            lambda username: client.is_group_admin(args.service, args.group_name, username),
-        ),
-        "project-master-users": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.project, parser, "project"),
-            client.get_project_master_users,
-        ),
-        "service-projects": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.service, parser, "service"),
-            client.list_service_projects,
-        ),
-        "org-projects": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.organisation, parser, "organisation"),
-            client.list_org_projects,
-        ),
-        "org-project-details": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.project, parser, "project"),
-            lambda project: client.get_org_project_details(args.organisation, project),
-        ),
-        "org-types": lambda args, client, parser: client.list_org_types(),
-        "vweb-user": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            client.get_vweb_user,
-        ),
-        "personal-homepages": lambda args, client, parser: client.list_personal_homepages(),
-        "is-service-admin": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            lambda username: client.is_service_admin(args.service, username),
-        ),
-        "managed-groups": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            lambda username: client.list_managed_groups(args.service, username),
-        ),
-        "group-memberships": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            lambda username: client.list_group_memberships(args.service, username),
-        ),
-        "user-services": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            client.list_user_services,
-        ),
-        "password-metadata": lambda args, client, parser: client.get_password_metadata(),
-        "user-password": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            client.get_user_password_metadata,
-        ),
-        "is-password-pwned": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            client.is_password_pwned,
-        ),
-        "exchange-distributions": lambda args, client, parser: client.list_exchange_distributions(),
-        "exchange-distribution": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.list_name, parser, "list_name"),
-            client.get_exchange_distribution,
-        ),
-        "exchange-admins": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.list_name, parser, "list_name"),
-            client.get_exchange_distribution_admins,
-        ),
-        "project-institution": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.project_name, parser, "project_name"),
-            client.get_project_institution_links,
-        ),
-        "institution": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.institution_id, parser, "institution_id"),
-            client.get_institution,
-        ),
-        "person": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.person_id, parser, "person_id"),
-            client.get_person,
-        ),
-        "user": lambda args, client, parser: _run_for_values(
-            _require_inputs(args.username, parser, "username"),
-            client.get_user,
-        ),
-    }
+        if streaming_arg is None:
+            call_args = [_argument_value(arg, args) for arg in spec.args]
+            return method(*call_args)
+
+        values = _prepare_streaming_values(streaming_arg, args, parser)
+
+        def invoke(value: str) -> Any:
+            resolved_args: list[Any] = []
+            for arg in spec.args:
+                if arg is streaming_arg:
+                    resolved_args.append(value)
+                    continue
+                resolved_args.append(_argument_value(arg, args))
+            return method(*resolved_args)
+
+        return _run_for_values(values, invoke)
+
+    return handler
+
+
+def _argument_value(arg: CommandArg, args: argparse.Namespace) -> Any:
+    dest = _argument_dest(arg)
+    return getattr(args, dest)
+
+
+def _argument_dest(arg: CommandArg) -> str:
+    if arg.dest:
+        return arg.dest
+    flag = arg.flags[-1]
+    return flag.lstrip("-").replace("-", "_")
+
+
+def _streaming_arg(args: Sequence[CommandArg]) -> CommandArg | None:
+    return next((arg for arg in args if arg.from_stdin), None)
+
+
+def _prepare_streaming_values(arg: CommandArg, args: argparse.Namespace, parser: argparse.ArgumentParser) -> list[str]:
+    values = _argument_value(arg, args)
+    placeholder = arg.placeholder or _argument_dest(arg)
+    if arg.required:
+        return _require_inputs(values, parser, placeholder)
+    return _stdin_or_values(values)
 
 
 __all__ = ["CommandHandler", "build_command_handlers"]
