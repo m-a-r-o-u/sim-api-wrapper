@@ -15,6 +15,10 @@ from .ai_systems import (
     collect_ai_system_mcml_user_emails,
     collect_ai_system_user_emails,
 )
+from .institution_heads import (
+    InstitutionHeadsCollectionError,
+    collect_institution_heads,
+)
 from .mcml import McmlCollectionError, collect_mcml_master_user_emails
 from .user_projects import (
     UserProjectsMembershipCollectionError,
@@ -120,6 +124,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Summarise the distribution of project counts instead of individual rows.",
     )
 
+    institution_heads = subparsers.add_parser(
+        "list-institution-heads",
+        help="Project institution heads for a service.",
+    )
+    institution_heads.add_argument(
+        "service",
+        nargs="?",
+        default="AI",
+        help="Service identifier used to look up project groups (default: %(default)s).",
+    )
+
     return parser
 
 
@@ -165,6 +180,12 @@ def main(argv: List[str] | None = None) -> int:
                 service=args.service,
                 test_sample_size=args.test_sample_size,
                 histogram=args.histogram,
+            )
+        if args.command == "list-institution-heads":
+            return _run_institution_heads(
+                client,
+                service=args.service,
+                test_sample_size=args.test_sample_size,
             )
     finally:
         client.close()
@@ -365,6 +386,26 @@ def _run_user_projects_membership(
         print(" ".join(parts))
 
     return 0 if result.memberships else 1
+
+
+def _run_institution_heads(
+    client: SimApiClient, *, service: str, test_sample_size: int | None
+) -> int:
+    try:
+        result = collect_institution_heads(
+            client, service=service, test_sample_size=test_sample_size
+        )
+    except InstitutionHeadsCollectionError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    for issue in result.issues:
+        print(f"NOTE: {issue}", file=sys.stderr)
+
+    for entry in result.heads:
+        print(f"{entry.project_id} {entry.formatted_name}")
+
+    return 0 if result.heads else 1
 
 
 if __name__ == "__main__":  # pragma: no cover

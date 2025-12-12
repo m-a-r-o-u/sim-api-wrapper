@@ -91,6 +91,18 @@ def _capture_user_memberships(monkeypatch: pytest.MonkeyPatch):
     return captured
 
 
+def _capture_institution_heads(monkeypatch: pytest.MonkeyPatch):
+    captured: dict[str, object] = {}
+
+    def runner(client, *, service: str, test_sample_size: int | None):
+        captured["service"] = service
+        captured["test"] = test_sample_size
+        return 0
+
+    monkeypatch.setattr(cli, "_run_institution_heads", runner)
+    return captured
+
+
 def test_all_users_global_test_flag_before_subcommand(
     monkeypatch: pytest.MonkeyPatch, stub_client
 ):
@@ -184,6 +196,28 @@ def test_user_projects_membership_respects_test_flag(
 
     assert exit_code == 0
     assert captured == {"service": "AI", "test": 5, "histogram": False}
+    assert stub_client[0].closed is True
+
+
+def test_institution_heads_invocation(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured = _capture_institution_heads(monkeypatch)
+
+    exit_code = cli.main(["list-institution-heads", "AIS"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AIS", "test": None}
+    assert stub_client[0].closed is True
+
+
+def test_institution_heads_respects_test_flag(
+    monkeypatch: pytest.MonkeyPatch, stub_client
+):
+    captured = _capture_institution_heads(monkeypatch)
+
+    exit_code = cli.main(["--test", "2", "list-institution-heads"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "test": 2}
     assert stub_client[0].closed is True
 
 
