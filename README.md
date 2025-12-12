@@ -1,4 +1,4 @@
-# SIM API Wrapper
+# SIM
 
 A lightweight, extensible Python wrapper for the [LRZ SIM API](https://simapi.sim.lrz.de). The
 client makes it straightforward to retrieve information about projects, groups, institutions,
@@ -6,7 +6,7 @@ people and users while keeping the implementation easy to read and extend.
 
 > **Documentation hub**
 >
-> - [SIM API client & CLI guide](docs/sim-api.md)
+> - [SIM client & CLI guide](docs/sim.md)
 > - [SIM App automation playbook](docs/sim-apps.md)
 
 ## Features
@@ -52,9 +52,9 @@ If neither mechanism is configured, requests are issued without authentication a
 likely reject them. Clear log messages are emitted whenever authentication details are missing or
 need attention.
 
-## What is `sim-api`?
+## What is `sim`?
 
-`sim-api` is a Python client and CLI for the LRZ SIM platform. It wraps common REST calls with typed
+`sim` is a Python client and CLI for the LRZ SIM platform. It wraps common REST calls with typed
 helpers so you can explore services, groups, institutions and identities without hand-rolling HTTP
 requests. Typical use cases include scripting account audits, exporting membership lists and
 retrieving metadata for reporting.
@@ -64,7 +64,7 @@ retrieving metadata for reporting.
 In Python you can combine the high-level helpers to gather information in a few lines of code:
 
 ```python
-from sim_api_wrapper import SimApiClient
+from sim import SimApiClient
 
 with SimApiClient() as client:
     members = client.get_group_members("AI", "pn69ju-ai-c")
@@ -78,7 +78,7 @@ Prefer the terminal? The CLI mirrors the same capabilities so you can inspect da
 code:
 
 ```bash
-sim-api group-members AI pn69ju-ai-c
+sim group-members AI pn69ju-ai-c
 ```
 
 Consult the dedicated guide for a full list of commands and output formats.
@@ -101,4 +101,4 @@ sim-apps all-user-emails --test 2 --verbose
 
 The snippet above samples two groups while printing detailed progress information. Swap the
 subcommand for `mcml-user-emails` or `mcml-master-user-emails` to focus on the MCML cohorts. `sim-apps`
-uses the same authentication flags as `sim-api`, making it easy to move between both tools.
+uses the same authentication flags as `sim`, making it easy to move between both tools.

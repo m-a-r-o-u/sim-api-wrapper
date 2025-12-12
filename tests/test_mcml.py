@@ -7,8 +7,8 @@ import pytest
 import warnings
 
 from sim_app.mcml import McmlCollectionError, collect_mcml_master_user_emails
-from sim_api_wrapper.models import User
-from sim_api_wrapper.exceptions import SimApiError
+from sim.models import User
+from sim.exceptions import SimApiError
 
 
 class FakeClient:

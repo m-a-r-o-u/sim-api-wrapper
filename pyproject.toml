@@ -3,7 +3,7 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sim-api-wrapper"
+name = "sim"
 version = "0.1.0"
 description = "Extensible Python client for the LRZ SIM API."
 readme = "README.md"
@@ -30,7 +30,7 @@ dev = [
 ]
 
 [project.scripts]
-sim-api = "sim_api_wrapper.cli:main"
+sim = "sim.cli:main"
 sim-apps = "sim_app.cli:main"
 
 [tool.setuptools.packages.find]

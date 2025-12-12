@@ -1,10 +1,10 @@
 """Factories for CLI command handlers.
 
 This module keeps the command-to-handler mapping separate from the CLI
-configuration so :mod:`sim_api_wrapper.cli` can focus on argument parsing
+configuration so :mod:`sim.cli` can focus on argument parsing
 and output formatting. The central ``build_command_handlers`` function acts
 as a simple factory that wires command names to callables invoking
-:class:`~sim_api_wrapper.client.SimApiClient` methods. Each handler also
+:class:`~sim.client.SimApiClient` methods. Each handler also
 reuses small helpers for common tasks such as reading piped values and
 ensuring required arguments are present.
 """

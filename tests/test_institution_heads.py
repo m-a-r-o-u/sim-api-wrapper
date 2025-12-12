@@ -4,8 +4,8 @@ from sim_app.institution_heads import (
     InstitutionHeadsCollectionError,
     collect_institution_heads,
 )
-from sim_api_wrapper.exceptions import SimApiError
-from sim_api_wrapper.models import Institution, Person, ProjectInstitutionLink
+from sim.exceptions import SimApiError
+from sim.models import Institution, Person, ProjectInstitutionLink
 
 
 class FakeClient:

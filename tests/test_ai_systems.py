@@ -8,8 +8,8 @@ from sim_app.ai_systems import (
     collect_ai_system_mcml_user_emails,
     collect_ai_system_user_emails,
 )
-from sim_api_wrapper.exceptions import SimApiError
-from sim_api_wrapper.models import User
+from sim.exceptions import SimApiError
+from sim.models import User
 
 
 class FakeClient:

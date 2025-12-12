@@ -8,7 +8,7 @@ import json
 
 import pytest
 
-from sim_api_wrapper.formatters import emit_delimited, emit_json, emit_plain, emit_yaml, parse_fields
+from sim.formatters import emit_delimited, emit_json, emit_plain, emit_yaml, parse_fields
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 # `sim-apps` automation helpers
 
-The `sim-apps` entry point builds on the low-level `sim-api` client to deliver automation workflows
+The `sim-apps` entry point builds on the low-level `sim` client to deliver automation workflows
 that solve common operational tasks. Each helper focuses on a specific workflow and reuses the same
 authentication and configuration options as the base CLI.
 
@@ -39,7 +39,7 @@ example, `sim-apps mcml-master-user-emails --test 2` only processes the first tw
 match the selected service. Combine this with `--verbose` (or `-v`) to print each step the helper
 executes for easier debugging.
 
-The command shares the same authentication flags as `sim-api` (`--netrc`, `--no-netrc`, `--base-url`
+The command shares the same authentication flags as `sim` (`--netrc`, `--no-netrc`, `--base-url`
 and `--timeout`). Diagnostic information is emitted on `stderr` whenever a project is missing master
 users, a user account cannot be resolved, or neither a hauptemail nor a kontaktemail address exists
 for a master user. The process continues whenever possible so partial results can still be
