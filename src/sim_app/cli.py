@@ -27,15 +27,16 @@ from .user_projects import (
 
 
 _SubParsersAction = getattr(argparse, "_SubParsersAction")
+PROG_NAME = "sim-apps"
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=("Use --test <N> to sample and -v/--verbose for logs."),
-        epilog="Example: sim-apps mcml-master-user-emails --test 2 -v",
+        epilog=f"Example: {PROG_NAME} mcml-master-user-emails --test 2 -v",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        usage="sim-apps COMMAND [OPTIONS]",
-        prog="sim-apps",
+        usage=f"{PROG_NAME} COMMAND [OPTIONS]",
+        prog=PROG_NAME,
     )
     parser.add_argument(
         "-v",
