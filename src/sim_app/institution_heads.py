@@ -1,0 +1,182 @@
+"""Utilities for listing institution heads per AI project."""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, field
+from typing import Iterable, Sequence
+
+from sim_api_wrapper.client import SimApiClient
+from sim_api_wrapper.exceptions import SimApiError
+from sim_api_wrapper.models import Institution, Person, ProjectInstitutionLink
+
+logger = logging.getLogger(__name__)
+
+_TARGET_SUFFIXES = ("-ai-c", "-ai-h-mcml")
+
+
+@dataclass(slots=True)
+class InstitutionHead:
+    """Representation of an institution head for a project."""
+
+    project_id: str
+    formatted_name: str
+
+
+@dataclass(slots=True)
+class InstitutionHeadsResult:
+    """Aggregated result of the institution head collection."""
+
+    heads: list[InstitutionHead] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
+
+    def extend_issues(self, messages: Iterable[str]) -> None:
+        self.issues.extend(messages)
+
+
+class InstitutionHeadsCollectionError(RuntimeError):
+    """Raised when collecting institution heads cannot proceed."""
+
+
+def collect_institution_heads(
+    client: SimApiClient,
+    *,
+    service: str = "AI",
+    test_sample_size: int | None = None,
+) -> InstitutionHeadsResult:
+    """Collect institution heads for projects belonging to a service."""
+
+    result = InstitutionHeadsResult()
+
+    try:
+        logger.info("Listing groups for service %s", service)
+        groups = client.list_groups(service)
+    except SimApiError as exc:  # pragma: no cover - defensive path
+        message = f"Failed to list groups for service {service}: {exc}"
+        logger.error(message)
+        raise InstitutionHeadsCollectionError(message) from exc
+
+    project_ids = sorted({project for project in (_extract_project_identifier(g) for g in groups) if project})
+    logger.info("Identified %d project(s) for service %s", len(project_ids), service)
+
+    if not project_ids:
+        result.issues.append(
+            "No AI system groups found. Expected suffixes: '-ai-c' or '-ai-h-mcml'."
+        )
+        return result
+
+    if test_sample_size is not None:
+        if test_sample_size <= 0:
+            result.issues.append("Test sample size must be a positive integer.")
+            return result
+        logger.info(
+            "Applying test sample size; limiting projects to %d entry/entries: %s",
+            test_sample_size,
+            ", ".join(project_ids[:test_sample_size]),
+        )
+        project_ids = project_ids[:test_sample_size]
+
+    for project_id in project_ids:
+        logger.info("Fetching institution links for project %s", project_id)
+        try:
+            institution_links = client.get_project_institution_links(project_id)
+        except SimApiError as exc:
+            message = f"Failed to fetch institution links for project {project_id}: {exc}"
+            logger.warning(message)
+            result.issues.append(message)
+            continue
+
+        institution_id = _first_institution_id(institution_links)
+        if not institution_id:
+            result.issues.append(f"No institution link found for project {project_id}.")
+            continue
+
+        logger.info("Fetching institution %s for project %s", institution_id, project_id)
+        try:
+            institution = client.get_institution(institution_id)
+        except SimApiError as exc:
+            message = f"Failed to retrieve institution {institution_id} for project {project_id}: {exc}"
+            logger.warning(message)
+            result.issues.append(message)
+            continue
+
+        head_id = _extract_head_id(institution)
+        if not head_id:
+            result.issues.append(
+                f"No institution head available for institution {institution_id} (project {project_id})."
+            )
+            continue
+
+        logger.info("Fetching person %s for project %s", head_id, project_id)
+        try:
+            person = client.get_person(head_id)
+        except SimApiError as exc:
+            message = f"Failed to retrieve person {head_id} for project {project_id}: {exc}"
+            logger.warning(message)
+            result.issues.append(message)
+            continue
+
+        formatted_name = _format_person(person)
+        result.heads.append(InstitutionHead(project_id=project_id, formatted_name=formatted_name))
+
+    return result
+
+
+def _extract_project_identifier(group: str) -> str | None:
+    for suffix in _TARGET_SUFFIXES:
+        if group.endswith(suffix):
+            identifier = group[: -len(suffix)]
+            return identifier.rstrip("-")
+    return None
+
+
+def _first_institution_id(links: Sequence[ProjectInstitutionLink]) -> str | None:
+    for link in links:
+        if isinstance(link, ProjectInstitutionLink) and link.einrichtungs_id:
+            return link.einrichtungs_id
+    return None
+
+
+def _extract_head_id(institution: Institution) -> str | None:
+    if not isinstance(institution, Institution):
+        return None
+    head_id = institution.chef_lrz_id
+    if isinstance(head_id, str) and head_id.strip():
+        return head_id
+    return None
+
+
+def _format_person(person: Person) -> str:
+    if not isinstance(person, Person):
+        return "<unknown>"
+
+    parts = []
+    if person.titel_pre:
+        parts.append(str(person.titel_pre).strip())
+    if person.rufname:
+        parts.append(str(person.rufname).strip())
+    if person.nachname:
+        parts.append(str(person.nachname).strip())
+    if person.titel_post:
+        parts.append(str(person.titel_post).strip())
+
+    name = " ".join(part for part in parts if part)
+    username = person.benutzername or person.lrz_id
+
+    if username:
+        username = str(username).strip()
+    if name and username:
+        return f"{name} ({username})"
+    if name:
+        return name
+    if username:
+        return f"<unknown name> ({username})"
+    return "<unknown>"
+
+
+__all__ = [
+    "InstitutionHead",
+    "InstitutionHeadsResult",
+    "InstitutionHeadsCollectionError",
+    "collect_institution_heads",
+]
