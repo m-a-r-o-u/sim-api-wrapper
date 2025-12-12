@@ -32,7 +32,7 @@ def _build_description() -> str:
         for spec in specs:
             lines.append(f"    {spec.name.ljust(longest)}  {spec.description}")
         lines.append("")
-    lines.append("Use 'sim-api COMMAND --help' for command-specific options.")
+    lines.append("Use 'sim COMMAND --help' for command-specific options.")
     return "\n".join(lines).rstrip()
 
 
@@ -64,14 +64,14 @@ def configure_logging(verbosity: int) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         add_help=False,
-        usage="sim-api COMMAND [OPTIONS]",
+        usage="sim COMMAND [OPTIONS]",
         description=_build_description(),
         epilog=textwrap.dedent(
             """
             Examples:
-              sim-api environment
-              sim-api group-members AI my-group
-              sim-api user USERID --format yaml --fields username,email
+              sim environment
+              sim group-members AI my-group
+              sim user USERID --format yaml --fields username,email
             """
         ),
         formatter_class=CustomHelpFormatter,

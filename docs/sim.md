@@ -1,13 +1,13 @@
-# `sim-api` client and CLI
+# `sim` client and CLI
 
-`sim-api` provides both a programmatic Python interface and a command line utility for exploring the
+`sim` provides both a programmatic Python interface and a command line utility for exploring the
 LRZ SIM platform. This document expands on the quick overview in the project README and highlights
 the most useful workflows.
 
 ## Python usage
 
 ```python
-from sim_api_wrapper import SimApiClient
+from sim import SimApiClient
 
 with SimApiClient() as client:
     environment = client.get_environment()
@@ -43,56 +43,56 @@ A small CLI is bundled for quick lookups:
 
 ```bash
 # General information
-sim-api environment
-sim-api current-user
-sim-api service-characteristics AI
+sim environment
+sim current-user
+sim service-characteristics AI
 
 # Group exploration
-sim-api groups AI
-sim-api group-info AI pn69ju-ai-c
-sim-api group-members AI pn69ju-ai-c
-sim-api group-admins AI pn69ju-ai-c
-sim-api group-rights AI pn69ju-ai-c di38qex
+sim groups AI
+sim group-info AI pn69ju-ai-c
+sim group-members AI pn69ju-ai-c
+sim group-admins AI pn69ju-ai-c
+sim group-rights AI pn69ju-ai-c di38qex
 
 # Membership checks
-sim-api is-group-member AI pn69ju-ai-c di38qex
-sim-api is-group-master AI pn69ju-ai-c di38qex
-sim-api is-group-admin AI pn69ju-ai-c di38qex
-sim-api project-master-users pn69ju
+sim is-group-member AI pn69ju-ai-c di38qex
+sim is-group-master AI pn69ju-ai-c di38qex
+sim is-group-admin AI pn69ju-ai-c di38qex
+sim project-master-users pn69ju
 
 # Service-centric lookups
-sim-api service-projects AI
-sim-api managed-groups AI di38qex
-sim-api group-memberships AI di38qex
-sim-api user-services di38qex
-sim-api is-service-admin AI di38qex
+sim service-projects AI
+sim managed-groups AI di38qex
+sim group-memberships AI di38qex
+sim user-services di38qex
+sim is-service-admin AI di38qex
 
 # Organisation data
-sim-api org-projects TUM
-sim-api org-project-details TUM uk431
-sim-api org-types
+sim org-projects TUM
+sim org-project-details TUM uk431
+sim org-types
 
 # Account metadata
-sim-api permissions-metadata
-sim-api user-permissions di38qex
-sim-api vweb-user di38qex
-sim-api personal-homepages
+sim permissions-metadata
+sim user-permissions di38qex
+sim vweb-user di38qex
+sim personal-homepages
 
 # Password tooling
-sim-api password-metadata
-sim-api user-password di38qex
-sim-api is-password-pwned di38qex
+sim password-metadata
+sim user-password di38qex
+sim is-password-pwned di38qex
 
 # Exchange distributions
-sim-api exchange-distributions
-sim-api exchange-distribution AI-announce
-sim-api exchange-admins AI-announce
+sim exchange-distributions
+sim exchange-distribution AI-announce
+sim exchange-admins AI-announce
 
 # Institutions and identities
-sim-api project-institution pn69ju
-sim-api institution 0000000000E4EE4B
-sim-api person 00000000001F17E0
-sim-api user di38qex
+sim project-institution pn69ju
+sim institution 0000000000E4EE4B
+sim person 00000000001F17E0
+sim user di38qex
 ```
 
 ### General CLI options
@@ -128,31 +128,31 @@ Need more examples? The [JMESPath tutorial](https://jmespath.org/tutorial.html) 
 
 ```bash
 # Default JSON output
-sim-api institution 0000000000E4EE4B | jq '.anschriften[0].ort'
+sim institution 0000000000E4EE4B | jq '.anschriften[0].ort'
 
 # Pick specific fields in a delimited export
-sim-api institution 0000000000E4EE4B --format plain --fields lrz_id,name,bezeichnung,status \
+sim institution 0000000000E4EE4B --format plain --fields lrz_id,name,bezeichnung,status \
 | tee /tmp/inst.tsv
 
 # Human-friendly YAML for nested structures
-sim-api institution 0000000000E4EE4B --format yaml --fields lrz_id,name,bezeichnung,status
+sim institution 0000000000E4EE4B --format yaml --fields lrz_id,name,bezeichnung,status
 
 # Extract nested address fields
-sim-api institution 0000000000E4EE4B --format plain \
+sim institution 0000000000E4EE4B --format plain \
   --fields anschriften[0].strasse,anschriften[0].plz,anschriften[0].ort,anschriften[0].land
 
 # Filter and project using JMESPath and return the first match as plain text
-sim-api user di38qex --format plain \
+sim user di38qex --format plain \
   --fields "daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]"
 
 # Stream identifiers line by line for shell pipelines
-sim-api groups AI --format plain | sim-api group-info AI --format plain --fields id,owner,count
+sim groups AI --format plain | sim group-info AI --format plain --fields id,owner,count
 ```
 
 ## Extending the client
 
 Adding new endpoints is as simple as defining another method on `SimApiClient` and, where useful,
-adding a matching dataclass inside `sim_api_wrapper.models`. The helper `_request_json` handles
+adding a matching dataclass inside `sim.models`. The helper `_request_json` handles
 request execution, error handling and logging for you.
 
 ## Testing

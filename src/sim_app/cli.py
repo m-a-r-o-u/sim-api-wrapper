@@ -6,8 +6,8 @@ import argparse
 import sys
 from typing import List
 
-from sim_api_wrapper.cli import configure_logging
-from sim_api_wrapper.client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, SimApiClient
+from sim.cli import configure_logging
+from sim.client import DEFAULT_BASE_URL, DEFAULT_TIMEOUT, SimApiClient
 
 from .ai_systems import (
     AiSystemsCollectionError,

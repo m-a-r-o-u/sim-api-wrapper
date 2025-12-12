@@ -1,10 +1,10 @@
-"""Tests for sim-api CLI argument handling."""
+"""Tests for sim CLI argument handling."""
 
 from __future__ import annotations
 
 import pytest
 
-from sim_api_wrapper import cli
+from sim import cli
 
 
 class DummyClient:

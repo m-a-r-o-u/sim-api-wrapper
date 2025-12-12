@@ -6,7 +6,7 @@ from sim_app.user_projects import (
     UserProjectsMembershipCollectionError,
     collect_user_projects_memberships,
 )
-from sim_api_wrapper.exceptions import SimApiError
+from sim.exceptions import SimApiError
 
 
 class FakeClient:

@@ -5,9 +5,9 @@ from typing import Callable, Dict, Tuple
 
 import pytest
 
-from sim_api_wrapper.auth import build_basic_auth_header
-from sim_api_wrapper.client import DEFAULT_BASE_URL, SimApiClient
-from sim_api_wrapper.exceptions import SimApiError
+from sim.auth import build_basic_auth_header
+from sim.client import DEFAULT_BASE_URL, SimApiClient
+from sim.exceptions import SimApiError
 
 ResponseTuple = Tuple[int, Dict[str, str], bytes]
 
@@ -127,7 +127,7 @@ def test_token_authentication(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None
     def fail_netrc(*args, **kwargs):  # pragma: no cover - should not be used
         raise AssertionError("netrc should not be accessed when token authentication is available")
 
-    monkeypatch.setattr("sim_api_wrapper.client.load_netrc_credentials", fail_netrc)
+    monkeypatch.setattr("sim.client.load_netrc_credentials", fail_netrc)
 
     client = SimApiClient(token_path=token_file)
     try:
@@ -145,7 +145,7 @@ def test_invalid_token_falls_back_to_netrc(monkeypatch: pytest.MonkeyPatch, tmp_
     def fake_netrc(base_url, netrc_path):
         return "user", "pass"
 
-    monkeypatch.setattr("sim_api_wrapper.client.load_netrc_credentials", fake_netrc)
+    monkeypatch.setattr("sim.client.load_netrc_credentials", fake_netrc)
 
     client = SimApiClient(token_path=token_file)
     try:

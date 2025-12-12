@@ -6,9 +6,9 @@ import logging
 from dataclasses import dataclass, field
 from typing import Iterable, Sequence
 
-from sim_api_wrapper.client import SimApiClient
-from sim_api_wrapper.exceptions import SimApiError
-from sim_api_wrapper.models import Institution, Person, ProjectInstitutionLink
+from sim.client import SimApiClient
+from sim.exceptions import SimApiError
+from sim.models import Institution, Person, ProjectInstitutionLink
 
 logger = logging.getLogger(__name__)
 

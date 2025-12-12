@@ -4,8 +4,8 @@ import argparse
 
 import pytest
 
-from sim_api_wrapper import cli, command_handlers
-from sim_api_wrapper.commands import COMMAND_SPECS, CommandArg, CommandSpec
+from sim import cli, command_handlers
+from sim.commands import COMMAND_SPECS, CommandArg, CommandSpec
 
 
 def _argument_dest(arg: CommandArg) -> str:

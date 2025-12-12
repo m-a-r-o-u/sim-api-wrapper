@@ -8,9 +8,9 @@ from dataclasses import dataclass, field
 import warnings
 from typing import Iterable, List, Sequence
 
-from sim_api_wrapper.client import SimApiClient
-from sim_api_wrapper.exceptions import SimApiError
-from sim_api_wrapper.models import User
+from sim.client import SimApiClient
+from sim.exceptions import SimApiError
+from sim.models import User
 
 logger = logging.getLogger(__name__)
 
