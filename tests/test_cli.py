@@ -1,4 +1,4 @@
-"""Tests for the sim-app CLI entry point."""
+"""Tests for the sim-apps CLI entry point."""
 
 from __future__ import annotations
 
@@ -213,7 +213,7 @@ def test_user_projects_membership_histogram_output(
 
 def test_user_projects_membership_help_usage(monkeypatch: pytest.MonkeyPatch):
     parser = cli.build_parser()
-    parser.prog = "sim-app"
+    parser.prog = "sim-apps"
 
     sub_action = next(
         action
@@ -224,6 +224,6 @@ def test_user_projects_membership_help_usage(monkeypatch: pytest.MonkeyPatch):
 
     assert (
         membership_parser.format_usage()
-        == "usage: sim-app user-projects-membership [OPTIONS] [-h]"
+        == "usage: sim-apps user-projects-membership [OPTIONS] [-h]"
         " [--service SERVICE] [--histogram]\n"
     )
