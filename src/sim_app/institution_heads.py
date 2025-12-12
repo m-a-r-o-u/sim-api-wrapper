@@ -100,24 +100,35 @@ def collect_institution_heads(
             result.issues.append(message)
             continue
 
-        head_id = _extract_head_id(institution)
-        if not head_id:
+        head_ids = _extract_head_ids(institution)
+        if not head_ids:
             result.issues.append(
                 f"No institution head available for institution {institution_id} (project {project_id})."
             )
             continue
 
-        logger.info("Fetching person %s for project %s", head_id, project_id)
-        try:
-            person = client.get_person(head_id)
-        except SimApiError as exc:
-            message = f"Failed to retrieve person {head_id} for project {project_id}: {exc}"
-            logger.warning(message)
-            result.issues.append(message)
-            continue
+        formatted_names: list[str] = []
+        for head_id in head_ids:
+            logger.info("Fetching person %s for project %s", head_id, project_id)
+            try:
+                person = client.get_person(head_id)
+            except SimApiError as exc:
+                message = f"Failed to retrieve person {head_id} for project {project_id}: {exc}"
+                logger.warning(message)
+                result.issues.append(message)
+                continue
 
-        formatted_name = _format_person(person)
-        result.heads.append(InstitutionHead(project_id=project_id, formatted_name=formatted_name))
+            formatted_names.append(_format_person(person))
+
+        if formatted_names:
+            formatted_name = ", ".join(formatted_names)
+            result.heads.append(
+                InstitutionHead(project_id=project_id, formatted_name=formatted_name)
+            )
+        else:
+            result.issues.append(
+                f"No institution head details available for institution {institution_id} (project {project_id})."
+            )
 
     return result
 
@@ -137,13 +148,16 @@ def _first_institution_id(links: Sequence[ProjectInstitutionLink]) -> str | None
     return None
 
 
-def _extract_head_id(institution: Institution) -> str | None:
+def _extract_head_ids(institution: Institution) -> list[str]:
     if not isinstance(institution, Institution):
-        return None
+        return []
+
     head_id = institution.chef_lrz_id
-    if isinstance(head_id, str) and head_id.strip():
-        return head_id
-    return None
+    if not isinstance(head_id, str):
+        return []
+
+    head_ids = [entry.strip() for entry in head_id.split(";") if entry.strip()]
+    return head_ids
 
 
 def _format_person(person: Person) -> str:
