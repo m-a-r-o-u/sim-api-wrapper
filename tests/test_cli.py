@@ -247,7 +247,7 @@ def test_user_projects_membership_histogram_output(
 
 def test_user_projects_membership_help_usage(monkeypatch: pytest.MonkeyPatch):
     parser = cli.build_parser()
-    parser.prog = "sim-apps"
+    parser.prog = cli.PROG_NAME
 
     sub_action = next(
         action
@@ -258,6 +258,6 @@ def test_user_projects_membership_help_usage(monkeypatch: pytest.MonkeyPatch):
 
     assert (
         membership_parser.format_usage()
-        == "usage: sim-apps user-projects-membership [OPTIONS] [-h]"
+        == f"usage: {cli.PROG_NAME} user-projects-membership [OPTIONS] [-h]"
         " [--service SERVICE] [--histogram]\n"
     )
