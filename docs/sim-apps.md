@@ -1,6 +1,6 @@
-# `sim-app` automation helpers
+# `sim-apps` automation helpers
 
-The `sim-app` entry point builds on the low-level `sim-api` client to deliver automation workflows
+The `sim-apps` entry point builds on the low-level `sim-api` client to deliver automation workflows
 that solve common operational tasks. Each helper focuses on a specific workflow and reuses the same
 authentication and configuration options as the base CLI.
 
@@ -12,12 +12,12 @@ first matching `hauptemail` or `kontaktemail` entry for each person. This gives 
 distribution list that covers all stakeholders of an AI deployment.
 
 ```bash
-sim-app all-user-emails
+sim-apps all-user-emails
 ```
 
 Provide `--service` when you need to target a specific SIM service identifier. The command defaults
-to `AI`, meaning `sim-app all-user-emails --service=XX` will switch to service `XX`. The helper also
-understands the global options shared across `sim-app` commands, including authentication flags and
+to `AI`, meaning `sim-apps all-user-emails --service=XX` will switch to service `XX`. The helper also
+understands the global options shared across `sim-apps` commands, including authentication flags and
 the `--test` sampling mode.
 
 During collection the helper emits warnings on `stderr` whenever a group member is missing, a user
@@ -31,11 +31,11 @@ This helper discovers all MCML project master users for a service and prints the
 assignments or share important service updates.
 
 ```bash
-sim-app mcml-master-user-emails
+sim-apps mcml-master-user-emails
 ```
 
 Pass `--test` to sample a subset of projects while developing or testing new integrations. For
-example, `sim-app mcml-master-user-emails --test 2` only processes the first two MCML projects that
+example, `sim-apps mcml-master-user-emails --test 2` only processes the first two MCML projects that
 match the selected service. Combine this with `--verbose` (or `-v`) to print each step the helper
 executes for easier debugging.
 
@@ -54,7 +54,7 @@ address. The output is perfect for distributing targeted notices to the shared M
 users.
 
 ```bash
-sim-app mcml-user-emails
+sim-apps mcml-user-emails
 ```
 
 Like the other helpers, you can pass `--service` to inspect a different SIM service and `--test` to
@@ -68,7 +68,7 @@ JMESPath-inspired syntax. That makes it easy to pipe results into downstream sys
 processing:
 
 ```bash
-sim-app mcml-master-user-emails \
+sim-apps mcml-master-user-emails \
   --fields "kennung,daten.emailadressen[?contains(typ,'hauptemail') || contains(typ,'kontaktemail')].adresse | [0]" \
   --format delimited --sep ';'
 ```
@@ -76,7 +76,7 @@ sim-app mcml-master-user-emails \
 The example produces a semicolon-delimited CSV stream containing project identifiers, user IDs and
 primary email addresses.
 
-## Extending `sim-app`
+## Extending `sim-apps`
 
 New helpers can be added alongside `mcml-master-user-emails`. Reuse the underlying `SimApiClient`
 methods and focus on the control flow that turns API responses into a repeatable automation. Because

@@ -28,10 +28,10 @@ _SubParsersAction = getattr(argparse, "_SubParsersAction")
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=("Use --test <N> to sample and -v/--verbose for logs."),
-        epilog="Example: sim-app mcml-master-user-emails --test 2 -v",
+        epilog="Example: sim-apps mcml-master-user-emails --test 2 -v",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        usage="sim-app COMMAND [OPTIONS]",
-        prog="sim-app",
+        usage="sim-apps COMMAND [OPTIONS]",
+        prog="sim-apps",
     )
     parser.add_argument(
         "-v",

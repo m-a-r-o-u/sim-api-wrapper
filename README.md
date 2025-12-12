@@ -7,7 +7,7 @@ people and users while keeping the implementation easy to read and extend.
 > **Documentation hub**
 >
 > - [SIM API client & CLI guide](docs/sim-api.md)
-> - [SIM App automation playbook](docs/sim-app.md)
+> - [SIM App automation playbook](docs/sim-apps.md)
 
 ## Features
 
@@ -83,9 +83,9 @@ sim-api group-members AI pn69ju-ai-c
 
 Consult the dedicated guide for a full list of commands and output formats.
 
-## What is `sim-app`?
+## What is `sim-apps`?
 
-`sim-app` bundles higher-level automation workflows on top of the raw API client so you can turn
+`sim-apps` bundles higher-level automation workflows on top of the raw API client so you can turn
 common tasks into repeatable scripts. Three helpers are available out of the box:
 
 - `all-user-emails` merges AI compute and MCML groups into a single email distribution list,
@@ -96,9 +96,9 @@ common tasks into repeatable scripts. Three helpers are available out of the box
   audit responsibility assignments.
 
 ```bash
-sim-app all-user-emails --test 2 --verbose
+sim-apps all-user-emails --test 2 --verbose
 ```
 
 The snippet above samples two groups while printing detailed progress information. Swap the
-subcommand for `mcml-user-emails` or `mcml-master-user-emails` to focus on the MCML cohorts. `sim-app`
+subcommand for `mcml-user-emails` or `mcml-master-user-emails` to focus on the MCML cohorts. `sim-apps`
 uses the same authentication flags as `sim-api`, making it easy to move between both tools.

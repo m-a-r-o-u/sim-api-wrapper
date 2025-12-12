@@ -31,7 +31,7 @@ dev = [
 
 [project.scripts]
 sim-api = "sim_api_wrapper.cli:main"
-sim-app = "sim_app.cli:main"
+sim-apps = "sim_app.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
