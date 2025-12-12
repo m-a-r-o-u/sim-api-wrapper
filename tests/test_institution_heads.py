@@ -71,6 +71,28 @@ def test_collect_institution_heads_success():
     assert result.issues == []
 
 
+def test_collect_institution_heads_multiple_heads():
+    client = FakeClient(
+        groups=["pn25hu-ai-c"],
+        links={"pn25hu": [ProjectInstitutionLink("pn25hu", "inst1", "")]},
+        institutions={"inst1": Institution(lrz_id="inst1", chef_lrz_id="head1;head2 ; head3")},
+        people={
+            "head1": Person(lrz_id="head1", benutzername="user1", rufname="Jane"),
+            "head2": Person(lrz_id="head2", benutzername="user2", nachname="Doe"),
+            "head3": SimApiError(None),
+        },
+    )
+
+    result = collect_institution_heads(client)
+
+    assert [(head.project_id, head.formatted_name) for head in result.heads] == [
+        ("pn25hu", "Jane (user1), Doe (user2)"),
+    ]
+    assert result.issues == [
+        "Failed to retrieve person head3 for project pn25hu: None",
+    ]
+
+
 def test_collect_institution_heads_test_sample_size():
     client = FakeClient(
         groups=["pn25hu-ai-c", "pn30ab-ai-c"],
