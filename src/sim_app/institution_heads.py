@@ -100,11 +100,8 @@ def collect_institution_heads(
             result.issues.append(message)
             continue
 
-        head_ids = _extract_head_ids(institution)
+        head_ids = _resolve_head_ids(client, institution, result, project_id)
         if not head_ids:
-            result.issues.append(
-                f"No institution head available for institution {institution_id} (project {project_id})."
-            )
             continue
 
         formatted_names: list[str] = []
@@ -146,6 +143,71 @@ def _first_institution_id(links: Sequence[ProjectInstitutionLink]) -> str | None
         if isinstance(link, ProjectInstitutionLink) and link.einrichtungs_id:
             return link.einrichtungs_id
     return None
+
+
+def _resolve_head_ids(
+    client: SimApiClient,
+    institution: Institution,
+    result: InstitutionHeadsResult,
+    project_id: str,
+) -> list[str]:
+    visited: set[str] = set()
+    queue: list[Institution] = [institution]
+    searched_parents = False
+    origin_id = institution.lrz_id or "<unknown>"
+
+    while queue:
+        current = queue.pop(0)
+        head_ids = _extract_head_ids(current)
+        if head_ids:
+            if current is not institution:
+                result.issues.append(
+                    (
+                        f"No institution head set on institution {origin_id} for project {project_id}; "
+                        f"using parent institution {current.lrz_id}."
+                    )
+                )
+            return head_ids
+
+        parent_ids = list(current.parent_ids or [])
+        if current is institution and parent_ids:
+            searched_parents = True
+            parent_list = ", ".join(parent_ids)
+            result.issues.append(
+                (
+                    f"No institution head set on institution {origin_id} for project {project_id}; "
+                    f"searching parent institutions: {parent_list}."
+                )
+            )
+
+        for parent_id in parent_ids:
+            if not parent_id or parent_id in visited:
+                continue
+            visited.add(parent_id)
+            searched_parents = True
+            logger.info("Fetching parent institution %s for project %s", parent_id, project_id)
+            try:
+                parent_institution = client.get_institution(parent_id)
+            except SimApiError as exc:
+                message = (
+                    f"Failed to retrieve parent institution {parent_id} for project {project_id}: {exc}"
+                )
+                logger.warning(message)
+                result.issues.append(message)
+                continue
+
+            queue.append(parent_institution)
+
+    if searched_parents:
+        result.issues.append(
+            f"No institution head found for institution {origin_id} or its parents (project {project_id})."
+        )
+    else:
+        result.issues.append(
+            f"No institution head available for institution {origin_id} (project {project_id})."
+        )
+
+    return []
 
 
 def _extract_head_ids(institution: Institution) -> list[str]:

@@ -71,6 +71,28 @@ def test_collect_institution_heads_success():
     assert result.issues == []
 
 
+def test_collect_institution_heads_falls_back_to_parent():
+    client = FakeClient(
+        groups=["pn25hu-ai-c"],
+        links={"pn25hu": [ProjectInstitutionLink("pn25hu", "inst1", "")]},
+        institutions={
+            "inst1": Institution(lrz_id="inst1", chef_lrz_id="", parent_ids=["parent1"]),
+            "parent1": Institution(lrz_id="parent1", chef_lrz_id="head1"),
+        },
+        people={"head1": Person(lrz_id="head1", benutzername="user1", nachname="Doe")},
+    )
+
+    result = collect_institution_heads(client)
+
+    assert [(head.project_id, head.formatted_name) for head in result.heads] == [
+        ("pn25hu", "Doe (user1)"),
+    ]
+    assert result.issues == [
+        "No institution head set on institution inst1 for project pn25hu; searching parent institutions: parent1.",
+        "No institution head set on institution inst1 for project pn25hu; using parent institution parent1.",
+    ]
+
+
 def test_collect_institution_heads_multiple_heads():
     client = FakeClient(
         groups=["pn25hu-ai-c"],
@@ -90,6 +112,26 @@ def test_collect_institution_heads_multiple_heads():
     ]
     assert result.issues == [
         "Failed to retrieve person head3 for project pn25hu: None",
+    ]
+
+
+def test_collect_institution_heads_parent_search_fails():
+    client = FakeClient(
+        groups=["pn25hu-ai-c"],
+        links={"pn25hu": [ProjectInstitutionLink("pn25hu", "inst1", "")]},
+        institutions={
+            "inst1": Institution(lrz_id="inst1", chef_lrz_id="", parent_ids=["parent1"]),
+            "parent1": Institution(lrz_id="parent1", chef_lrz_id=None),
+        },
+        people={},
+    )
+
+    result = collect_institution_heads(client)
+
+    assert result.heads == []
+    assert result.issues == [
+        "No institution head set on institution inst1 for project pn25hu; searching parent institutions: parent1.",
+        "No institution head found for institution inst1 or its parents (project pn25hu).",
     ]
 
 

@@ -27,7 +27,7 @@ from .user_projects import (
 
 
 _SubParsersAction = getattr(argparse, "_SubParsersAction")
-PROG_NAME = "sim-apps"
+PROG_NAME = "sim-app"
 
 
 def build_parser() -> argparse.ArgumentParser:
