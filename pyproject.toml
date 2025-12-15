@@ -30,7 +30,7 @@ dev = [
 ]
 
 [project.scripts]
-sim = "sim.cli:main"
+sim-api = "sim.cli:main"
 sim-apps = "sim_app.cli:main"
 
 [tool.setuptools.packages.find]

@@ -74,11 +74,11 @@ print(members)
 print(permissions)
 ```
 
-Prefer the terminal? The CLI mirrors the same capabilities so you can inspect data without writing
+Prefer the terminal? The `sim-api` CLI mirrors the same capabilities so you can inspect data without writing
 code:
 
 ```bash
-sim group-members AI pn69ju-ai-c
+sim-api group-members AI pn69ju-ai-c
 ```
 
 Consult the dedicated guide for a full list of commands and output formats.
@@ -101,4 +101,4 @@ sim-apps all-user-emails --test 2 --verbose
 
 The snippet above samples two groups while printing detailed progress information. Swap the
 subcommand for `mcml-user-emails` or `mcml-master-user-emails` to focus on the MCML cohorts. `sim-apps`
-uses the same authentication flags as `sim`, making it easy to move between both tools.
+uses the same authentication flags as `sim-api`, making it easy to move between both tools.
