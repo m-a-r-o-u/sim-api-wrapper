@@ -1,4 +1,4 @@
-"""Tests for sim CLI argument handling."""
+"""Tests for sim-api CLI argument handling."""
 
 from __future__ import annotations
 
