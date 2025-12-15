@@ -1,4 +1,4 @@
-"""Tests for the sim-apps CLI entry point."""
+"""Tests for the sim-app CLI entry point."""
 
 from __future__ import annotations
 
