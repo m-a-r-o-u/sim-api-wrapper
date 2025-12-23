@@ -135,6 +135,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="AI",
         help="Service identifier used to look up project groups (default: %(default)s).",
     )
+    institution_heads.add_argument(
+        "--filter",
+        dest="group_filter",
+        default=None,
+        help="Filter project groups by glob pattern before extracting project ids.",
+    )
 
     return parser
 
@@ -186,6 +192,7 @@ def main(argv: List[str] | None = None) -> int:
             return _run_institution_heads(
                 client,
                 service=args.service,
+                group_filter=args.group_filter,
                 test_sample_size=args.test_sample_size,
             )
     finally:
@@ -390,11 +397,18 @@ def _run_user_projects_membership(
 
 
 def _run_institution_heads(
-    client: SimApiClient, *, service: str, test_sample_size: int | None
+    client: SimApiClient,
+    *,
+    service: str,
+    group_filter: str | None,
+    test_sample_size: int | None,
 ) -> int:
     try:
         result = collect_institution_heads(
-            client, service=service, test_sample_size=test_sample_size
+            client,
+            service=service,
+            group_filter=group_filter,
+            test_sample_size=test_sample_size,
         )
     except InstitutionHeadsCollectionError as exc:
         print(exc, file=sys.stderr)

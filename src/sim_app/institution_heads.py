@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from fnmatch import fnmatch
 from typing import Iterable, Sequence
 
 from sim.client import SimApiClient
@@ -42,6 +43,7 @@ def collect_institution_heads(
     client: SimApiClient,
     *,
     service: str = "AI",
+    group_filter: str | None = None,
     test_sample_size: int | None = None,
 ) -> InstitutionHeadsResult:
     """Collect institution heads for projects belonging to a service."""
@@ -56,10 +58,22 @@ def collect_institution_heads(
         logger.error(message)
         raise InstitutionHeadsCollectionError(message) from exc
 
-    project_ids = sorted({project for project in (_extract_project_identifier(g) for g in groups) if project})
+    if group_filter:
+        groups = [group for group in groups if fnmatch(group, group_filter)]
+        logger.info(
+            "Filtered groups with pattern %s; %d group(s) remain",
+            group_filter,
+            len(groups),
+        )
+
+    project_ids = sorted(
+        {project for project in (_extract_project_identifier(g) for g in groups) if project}
+    )
     logger.info("Identified %d project(s) for service %s", len(project_ids), service)
 
     if not project_ids:
+        if group_filter:
+            result.issues.append(f"No groups matched filter pattern {group_filter}.")
         result.issues.append(
             "No AI system groups found. Expected suffixes: '-ai-c' or '-ai-h-mcml'."
         )
