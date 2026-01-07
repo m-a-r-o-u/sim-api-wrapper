@@ -498,6 +498,7 @@ def _run_project_details(
 def _print_project_details_csv(entries) -> None:
     import csv
 
+    list_separator = " | "
     writer = csv.writer(sys.stdout)
     writer.writerow(["Project ID", "Head of Institution", "Master Users", "Users"])
     for entry in entries:
@@ -505,20 +506,21 @@ def _print_project_details_csv(entries) -> None:
             [
                 entry.project_id,
                 entry.head_of_institution,
-                ", ".join(entry.master_users),
-                ", ".join(entry.users),
+                list_separator.join(entry.master_users),
+                list_separator.join(entry.users),
             ]
         )
 
 
 def _print_project_details_table(entries) -> None:
     headers = ["Project ID", "Head of Institution", "Master Users", "Users"]
+    list_separator = " | "
     rows = [
         [
             entry.project_id,
             entry.head_of_institution,
-            ", ".join(entry.master_users),
-            ", ".join(entry.users),
+            list_separator.join(entry.master_users),
+            list_separator.join(entry.users),
         ]
         for entry in entries
     ]
