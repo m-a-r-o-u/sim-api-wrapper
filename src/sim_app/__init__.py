@@ -20,6 +20,12 @@ from .user_projects import (
     UserProjectsMembershipResult,
     collect_user_projects_memberships,
 )
+from .project_details import (
+    ProjectDetailsCollectionError,
+    ProjectDetailsEntry,
+    ProjectDetailsResult,
+    collect_project_details,
+)
 
 __all__ = [
     "AiSystemsCollectionError",
@@ -33,6 +39,10 @@ __all__ = [
     "collect_institution_heads",
     "McmlEmailCollectionResult",
     "collect_mcml_master_user_emails",
+    "ProjectDetailsCollectionError",
+    "ProjectDetailsEntry",
+    "ProjectDetailsResult",
+    "collect_project_details",
     "UserProjectsMembership",
     "UserProjectsMembershipCollectionError",
     "UserProjectsMembershipResult",
