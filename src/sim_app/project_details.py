@@ -258,13 +258,15 @@ def _collect_project_users(
             _debug_command(debug_commands, f"sim-api group-members {service} {group}")
             members = client.get_group_members(service, group)
         except SimApiError as exc:
+            if str(exc) == "Expected JSON response":
+                logger.info("No members returned for group %s", group)
+                continue
             message = f"Failed to fetch members for group {group}: {exc}"
             logger.warning(message)
             result.issues.append(message)
             continue
 
         if not members:
-            result.issues.append(f"No members returned for group {group}.")
             continue
 
         for member in members:

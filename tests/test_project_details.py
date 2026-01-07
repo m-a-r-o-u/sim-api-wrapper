@@ -146,6 +146,23 @@ def test_collect_project_details_filter_and_sample():
     assert result.issues == []
 
 
+def test_collect_project_details_allows_empty_project_users():
+    client = FakeClient(
+        groups=["pn1-ai-c"],
+        links={"pn1": [ProjectInstitutionLink("pn1", "inst1", "")]},
+        institutions={"inst1": Institution(lrz_id="inst1", chef_lrz_id="head1")},
+        people={"head1": Person(lrz_id="head1", benutzername="user1", nachname="Doe")},
+        master_users={"pn1": ["mu1"]},
+        users={"mu1": User(kennung="mu1", daten={"nachname": "Doe"})},
+        members={"pn1-ai-c": SimApiError("Expected JSON response")},
+    )
+
+    result = collect_project_details(client)
+
+    assert [entry.users for entry in result.entries] == [()]
+    assert result.issues == []
+
+
 def test_collect_project_details_invalid_sample_size():
     client = FakeClient(
         groups=["pn1-ai-c"],
