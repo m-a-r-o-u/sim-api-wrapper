@@ -6,7 +6,7 @@ import logging
 import sys
 from dataclasses import dataclass, field
 from fnmatch import fnmatch
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from sim.client import SimApiClient
 from sim.exceptions import SimApiError
@@ -52,6 +52,7 @@ def collect_project_details(
     group_filter: str | None = None,
     test_sample_size: int | None = None,
     debug_commands: bool = False,
+    emit_entry: Callable[[ProjectDetailsEntry], None] | None = None,
 ) -> ProjectDetailsResult:
     """Collect project details for AI system projects."""
 
@@ -113,15 +114,16 @@ def collect_project_details(
             debug_commands=debug_commands,
         )
 
-        result.entries.append(
-            ProjectDetailsEntry(
-                project_id=project_id,
-                head_of_institution=head_name,
-                master_users=tuple(master_users),
-                users=tuple(users),
-                is_mcml=_has_mcml_group(project_groups[project_id]),
-            )
+        entry = ProjectDetailsEntry(
+            project_id=project_id,
+            head_of_institution=head_name,
+            master_users=tuple(master_users),
+            users=tuple(users),
+            is_mcml=_has_mcml_group(project_groups[project_id]),
         )
+        if emit_entry is not None:
+            emit_entry(entry)
+        result.entries.append(entry)
 
     return result
 

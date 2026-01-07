@@ -472,6 +472,12 @@ def _run_project_details(
     output_format: str,
     debug: bool,
 ) -> int:
+    emit_entry = None
+    if output_format == "csv":
+        emit_entry = _build_project_details_csv_emitter()
+    elif output_format == "table":
+        emit_entry = _build_project_details_table_emitter()
+
     try:
         result = collect_project_details(
             client,
@@ -479,6 +485,7 @@ def _run_project_details(
             group_filter=group_filter,
             test_sample_size=test_sample_size,
             debug_commands=debug,
+            emit_entry=emit_entry,
         )
     except ProjectDetailsCollectionError as exc:
         print(exc, file=sys.stderr)
@@ -487,10 +494,11 @@ def _run_project_details(
     for issue in result.issues:
         print(f"NOTE: {issue}", file=sys.stderr)
 
-    if output_format == "table":
-        _print_project_details_table(result.entries)
-    else:
-        _print_project_details_csv(result.entries)
+    if emit_entry is None:
+        if output_format == "table":
+            _print_project_details_table(result.entries)
+        else:
+            _print_project_details_csv(result.entries)
 
     return 0 if result.entries else 1
 
@@ -539,6 +547,52 @@ def _print_project_details_table(entries) -> None:
     print(separator)
     for row in rows:
         print(" | ".join(value.ljust(widths[index]) for index, value in enumerate(row)))
+
+
+def _build_project_details_csv_emitter():
+    import csv
+
+    list_separator = " | "
+    writer = csv.writer(sys.stdout)
+    writer.writerow(
+        ["Project ID", "Head of Institution", "Master Users", "Users", "Partner"]
+    )
+
+    def _emit(entry) -> None:
+        writer.writerow(
+            [
+                entry.project_id,
+                entry.head_of_institution,
+                list_separator.join(entry.master_users),
+                list_separator.join(entry.users),
+                "mcml" if entry.is_mcml else "",
+            ]
+        )
+
+    return _emit
+
+
+def _build_project_details_table_emitter():
+    headers = ["Project ID", "Head of Institution", "Master Users", "Users", "Partner"]
+    widths = [len(header) for header in headers]
+    list_separator = " | "
+
+    header_line = " | ".join(header.ljust(widths[index]) for index, header in enumerate(headers))
+    separator = "-+-".join("-" * width for width in widths)
+    print(header_line)
+    print(separator)
+
+    def _emit(entry) -> None:
+        row = [
+            entry.project_id,
+            entry.head_of_institution,
+            list_separator.join(entry.master_users),
+            list_separator.join(entry.users),
+            "mcml" if entry.is_mcml else "",
+        ]
+        print(" | ".join(value.ljust(widths[index]) for index, value in enumerate(row)))
+
+    return _emit
 
 
 if __name__ == "__main__":  # pragma: no cover
