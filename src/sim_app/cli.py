@@ -20,6 +20,10 @@ from .institution_heads import (
     collect_institution_heads,
 )
 from .mcml import McmlCollectionError, collect_mcml_master_user_emails
+from .project_details import (
+    ProjectDetailsCollectionError,
+    collect_project_details,
+)
 from .user_projects import (
     UserProjectsMembershipCollectionError,
     collect_user_projects_memberships,
@@ -142,6 +146,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="Filter project groups by glob pattern before extracting project ids.",
     )
 
+    project_details = subparsers.add_parser(
+        "project-details",
+        help="Project details for AI system projects.",
+    )
+    project_details.add_argument(
+        "--service",
+        default="AI",
+        help="Service identifier used to look up project groups (default: %(default)s).",
+    )
+    project_details.add_argument(
+        "--format",
+        choices=("csv", "table"),
+        default="csv",
+        help="Output format (default: %(default)s).",
+    )
+    project_details.add_argument(
+        "--filter",
+        dest="group_filter",
+        default=None,
+        help="Filter project groups by glob pattern before extracting project ids.",
+    )
+    project_details.add_argument(
+        "--debug",
+        action="store_true",
+        help="Print SIM API commands as they run.",
+    )
+
     return parser
 
 
@@ -194,6 +225,15 @@ def main(argv: List[str] | None = None) -> int:
                 service=args.service,
                 group_filter=args.group_filter,
                 test_sample_size=args.test_sample_size,
+            )
+        if args.command == "project-details":
+            return _run_project_details(
+                client,
+                service=args.service,
+                group_filter=args.group_filter,
+                test_sample_size=args.test_sample_size,
+                output_format=args.format,
+                debug=args.debug,
             )
     finally:
         client.close()
@@ -421,6 +461,78 @@ def _run_institution_heads(
         print(f"{entry.project_id} {entry.formatted_name}")
 
     return 0 if result.heads else 1
+
+
+def _run_project_details(
+    client: SimApiClient,
+    *,
+    service: str,
+    group_filter: str | None,
+    test_sample_size: int | None,
+    output_format: str,
+    debug: bool,
+) -> int:
+    try:
+        result = collect_project_details(
+            client,
+            service=service,
+            group_filter=group_filter,
+            test_sample_size=test_sample_size,
+            debug_commands=debug,
+        )
+    except ProjectDetailsCollectionError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    for issue in result.issues:
+        print(f"NOTE: {issue}", file=sys.stderr)
+
+    if output_format == "table":
+        _print_project_details_table(result.entries)
+    else:
+        _print_project_details_csv(result.entries)
+
+    return 0 if result.entries else 1
+
+
+def _print_project_details_csv(entries) -> None:
+    import csv
+
+    writer = csv.writer(sys.stdout)
+    writer.writerow(["Project ID", "Head of Institution", "Master Users", "Users"])
+    for entry in entries:
+        writer.writerow(
+            [
+                entry.project_id,
+                entry.head_of_institution,
+                ", ".join(entry.master_users),
+                ", ".join(entry.users),
+            ]
+        )
+
+
+def _print_project_details_table(entries) -> None:
+    headers = ["Project ID", "Head of Institution", "Master Users", "Users"]
+    rows = [
+        [
+            entry.project_id,
+            entry.head_of_institution,
+            ", ".join(entry.master_users),
+            ", ".join(entry.users),
+        ]
+        for entry in entries
+    ]
+    widths = [
+        max(len(header), *(len(row[index]) for row in rows)) if rows else len(header)
+        for index, header in enumerate(headers)
+    ]
+
+    header_line = " | ".join(header.ljust(widths[index]) for index, header in enumerate(headers))
+    separator = "-+-".join("-" * width for width in widths)
+    print(header_line)
+    print(separator)
+    for row in rows:
+        print(" | ".join(value.ljust(widths[index]) for index, value in enumerate(row)))
 
 
 if __name__ == "__main__":  # pragma: no cover
