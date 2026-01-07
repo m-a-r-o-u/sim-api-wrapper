@@ -500,7 +500,9 @@ def _print_project_details_csv(entries) -> None:
 
     list_separator = " | "
     writer = csv.writer(sys.stdout)
-    writer.writerow(["Project ID", "Head of Institution", "Master Users", "Users"])
+    writer.writerow(
+        ["Project ID", "Head of Institution", "Master Users", "Users", "Partner"]
+    )
     for entry in entries:
         writer.writerow(
             [
@@ -508,12 +510,13 @@ def _print_project_details_csv(entries) -> None:
                 entry.head_of_institution,
                 list_separator.join(entry.master_users),
                 list_separator.join(entry.users),
+                "mcml" if entry.is_mcml else "",
             ]
         )
 
 
 def _print_project_details_table(entries) -> None:
-    headers = ["Project ID", "Head of Institution", "Master Users", "Users"]
+    headers = ["Project ID", "Head of Institution", "Master Users", "Users", "Partner"]
     list_separator = " | "
     rows = [
         [
@@ -521,6 +524,7 @@ def _print_project_details_table(entries) -> None:
             entry.head_of_institution,
             list_separator.join(entry.master_users),
             list_separator.join(entry.users),
+            "mcml" if entry.is_mcml else "",
         ]
         for entry in entries
     ]

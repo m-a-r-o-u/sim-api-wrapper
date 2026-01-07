@@ -124,6 +124,7 @@ def test_collect_project_details_success():
         ("user1", "user2", "user3"),
         ("user4",),
     ]
+    assert [entry.is_mcml for entry in result.entries] == [True, False]
     assert result.issues == []
 
 
@@ -141,6 +142,7 @@ def test_collect_project_details_filter_and_sample():
     result = collect_project_details(client, group_filter="*mcml*", test_sample_size=1)
 
     assert [entry.project_id for entry in result.entries] == ["pn1"]
+    assert [entry.is_mcml for entry in result.entries] == [True]
     assert result.issues == []
 
 

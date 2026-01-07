@@ -27,6 +27,7 @@ class ProjectDetailsEntry:
     head_of_institution: str
     master_users: tuple[str, ...]
     users: tuple[str, ...]
+    is_mcml: bool
 
 
 @dataclass(slots=True)
@@ -118,6 +119,7 @@ def collect_project_details(
                 head_of_institution=head_name,
                 master_users=tuple(master_users),
                 users=tuple(users),
+                is_mcml=_has_mcml_group(project_groups[project_id]),
             )
         )
 
@@ -140,6 +142,10 @@ def _extract_project_identifier(group: str) -> str | None:
             identifier = group[: -len(suffix)]
             return identifier.rstrip("-")
     return None
+
+
+def _has_mcml_group(groups: Sequence[str]) -> bool:
+    return any(group.endswith(_MCML_SUFFIXES[0]) for group in groups)
 
 
 def _collect_head_of_institution(
