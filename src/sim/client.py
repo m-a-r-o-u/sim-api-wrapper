@@ -397,6 +397,7 @@ class SimApiClient(AbstractContextManager["SimApiClient"]):
         params: Optional[Dict[str, Any]] = None,
     ) -> Any:
         url = self._build_url(endpoint, params)
+        self.logger.info("SIM API call: %s %s", method.upper(), url)
         self.logger.debug("Performing %s request to %s", method.upper(), url)
 
         request = urllib_request.Request(url, method=method.upper())
