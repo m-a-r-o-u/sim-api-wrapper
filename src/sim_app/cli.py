@@ -427,11 +427,10 @@ def _run_user_projects_membership(
             print(f"{project_count} {user_count}")
         return 0 if result.memberships else 1
 
+    print("user_id,projects")
     for membership in result.memberships:
-        parts = [membership.username]
-        if membership.projects:
-            parts.append(", ".join(membership.projects))
-        print(" ".join(parts))
+        projects = "+".join(membership.projects)
+        print(f"{membership.username},{projects}")
 
     return 0 if result.memberships else 1
 
