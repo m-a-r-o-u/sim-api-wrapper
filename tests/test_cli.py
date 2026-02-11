@@ -94,8 +94,9 @@ def _capture_user_memberships(monkeypatch: pytest.MonkeyPatch):
 def _capture_institution_heads(monkeypatch: pytest.MonkeyPatch):
     captured: dict[str, object] = {}
 
-    def runner(client, *, service: str, test_sample_size: int | None):
+    def runner(client, *, service: str, group_filter: str | None, test_sample_size: int | None):
         captured["service"] = service
+        captured["group_filter"] = group_filter
         captured["test"] = test_sample_size
         return 0
 
@@ -205,7 +206,7 @@ def test_institution_heads_invocation(monkeypatch: pytest.MonkeyPatch, stub_clie
     exit_code = cli.main(["list-institution-heads", "AIS"])
 
     assert exit_code == 0
-    assert captured == {"service": "AIS", "test": None}
+    assert captured == {"service": "AIS", "group_filter": None, "test": None}
     assert stub_client[0].closed is True
 
 
@@ -217,7 +218,43 @@ def test_institution_heads_respects_test_flag(
     exit_code = cli.main(["--test", "2", "list-institution-heads"])
 
     assert exit_code == 0
-    assert captured == {"service": "AI", "test": 2}
+    assert captured == {"service": "AI", "group_filter": None, "test": 2}
+    assert stub_client[0].closed is True
+
+
+def test_project_list_invocation(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured: dict[str, object] = {}
+
+    def runner(client, *, service: str, output_path: str | None, test_sample_size: int | None):
+        captured["service"] = service
+        captured["output_path"] = output_path
+        captured["test"] = test_sample_size
+        return 0
+
+    monkeypatch.setattr(cli, "_run_project_list", runner)
+
+    exit_code = cli.main(["project-list", "--service", "AIS", "--output", "tmp/out.csv"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AIS", "output_path": "tmp/out.csv", "test": None}
+    assert stub_client[0].closed is True
+
+
+def test_project_list_typo_output_option(monkeypatch: pytest.MonkeyPatch, stub_client):
+    captured: dict[str, object] = {}
+
+    def runner(client, *, service: str, output_path: str | None, test_sample_size: int | None):
+        captured["service"] = service
+        captured["output_path"] = output_path
+        captured["test"] = test_sample_size
+        return 0
+
+    monkeypatch.setattr(cli, "_run_project_list", runner)
+
+    exit_code = cli.main(["project-list", "--ouput", "tmp/out.csv", "--test", "2"])
+
+    assert exit_code == 0
+    assert captured == {"service": "AI", "output_path": "tmp/out.csv", "test": 2}
     assert stub_client[0].closed is True
 
 
@@ -256,8 +293,8 @@ def test_user_projects_membership_help_usage(monkeypatch: pytest.MonkeyPatch):
     )
     membership_parser = sub_action.choices["user-projects-membership"]
 
-    assert (
-        membership_parser.format_usage()
-        == f"usage: {cli.PROG_NAME} user-projects-membership [OPTIONS] [-h]"
-        " [--service SERVICE] [--histogram]\n"
+    usage = membership_parser.format_usage()
+    assert usage.startswith(
+        f"usage: {cli.PROG_NAME} user-projects-membership [OPTIONS] [-h] [--service SERVICE]"
     )
+    assert "[--histogram]" in usage

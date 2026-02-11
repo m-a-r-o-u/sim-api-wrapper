@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import date
+from pathlib import Path
 from typing import List
 
 from sim.cli import configure_logging
@@ -23,6 +25,12 @@ from .mcml import McmlCollectionError, collect_mcml_master_user_emails
 from .project_details import (
     ProjectDetailsCollectionError,
     collect_project_details,
+)
+from .project_list import (
+    ProjectListCollectionError,
+    collect_project_list,
+    default_project_list_output_path,
+    write_project_list_csv,
 )
 from .user_projects import (
     UserProjectsMembershipCollectionError,
@@ -173,6 +181,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print SIM API commands as they run.",
     )
 
+    project_list = subparsers.add_parser(
+        "project-list",
+        help="Export a CSV with project id, partner, and institution.",
+    )
+    project_list.add_argument(
+        "--service",
+        default="AI",
+        help="Service identifier used to look up project groups (default: %(default)s).",
+    )
+    project_list.add_argument(
+        "--output",
+        "--ouput",
+        dest="output",
+        default=None,
+        help="CSV output path (default: output/<today>/project-list.csv).",
+    )
+
     return parser
 
 
@@ -234,6 +259,13 @@ def main(argv: List[str] | None = None) -> int:
                 test_sample_size=args.test_sample_size,
                 output_format=args.format,
                 debug=args.debug,
+            )
+        if args.command == "project-list":
+            return _run_project_list(
+                client,
+                service=args.service,
+                output_path=args.output,
+                test_sample_size=args.test_sample_size,
             )
     finally:
         client.close()
@@ -498,6 +530,38 @@ def _run_project_details(
             _print_project_details_table(result.entries)
         else:
             _print_project_details_csv(result.entries)
+
+    return 0 if result.entries else 1
+
+
+def _run_project_list(
+    client: SimApiClient,
+    *,
+    service: str,
+    output_path: str | None,
+    test_sample_size: int | None,
+) -> int:
+    target_path = (
+        Path(output_path)
+        if output_path
+        else default_project_list_output_path(date.today())
+    )
+
+    try:
+        result = collect_project_list(
+            client,
+            service=service,
+            test_sample_size=test_sample_size,
+        )
+    except ProjectListCollectionError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+
+    for issue in result.issues:
+        print(f"NOTE: {issue}", file=sys.stderr)
+
+    write_project_list_csv(result.entries, target_path)
+    print(target_path)
 
     return 0 if result.entries else 1
 
