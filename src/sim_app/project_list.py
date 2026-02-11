@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 _TARGET_SUFFIXES = ("-ai-c", "-ai-h-mcml")
 _MCML_SUFFIX = "-ai-h-mcml"
+_BAYERISCHE_HOCHSCHULEN = "Bayerische Hochschulen im Bereich des StMFK"
+_OEFFENTLICH_RECHTLICHE = "Öffentlich-Rechtliche und Gemeinnützige Körperschaften"
 
 
 @dataclass(slots=True)
@@ -145,7 +147,7 @@ def _resolve_top_institution_name(
 
     visited: set[str] = set()
     current_id: str | None = institution_id
-    top_bezeichnung: str | None = None
+    bezeichnungen_in_order: list[str] = []
 
     while current_id and current_id not in visited:
         visited.add(current_id)
@@ -159,12 +161,33 @@ def _resolve_top_institution_name(
 
         bezeichnung = (institution.bezeichnung or "").strip()
         if bezeichnung:
-            top_bezeichnung = bezeichnung
+            bezeichnungen_in_order.append(bezeichnung)
 
         parent_ids = [parent_id for parent_id in institution.parent_ids if parent_id]
         current_id = parent_ids[0] if parent_ids else None
 
-    return top_bezeichnung
+    return _select_institution_label(bezeichnungen_in_order)
+
+
+def _select_institution_label(bezeichnungen_in_order: Sequence[str]) -> str | None:
+    """Choose the institution label from collected bezeichnungen.
+
+    ``bezeichnungen_in_order`` is expected from project institution up to the
+    root of the tree.
+    """
+
+    if not bezeichnungen_in_order:
+        return None
+
+    topmost = bezeichnungen_in_order[-1]
+
+    if topmost == _BAYERISCHE_HOCHSCHULEN and len(bezeichnungen_in_order) >= 2:
+        return bezeichnungen_in_order[-2]
+
+    if topmost == _OEFFENTLICH_RECHTLICHE and len(bezeichnungen_in_order) >= 2:
+        return bezeichnungen_in_order[1]
+
+    return topmost
 
 
 def _first_institution_id(links: Sequence[ProjectInstitutionLink]) -> str | None:

@@ -100,3 +100,79 @@ def test_default_project_list_output_path_uses_today_date():
         default_project_list_output_path(date(2026, 2, 11)).as_posix()
         == "output/2026-02-11/project-list.csv"
     )
+
+
+def test_collect_project_list_uses_parent_before_bayerische_hochschulen():
+    class DummyClientWithBayerische(DummyProjectListClient):
+        def __init__(self) -> None:
+            self.institutions = {
+                "inst-child": Institution(
+                    lrz_id="inst-child",
+                    bezeichnung="[TUINI15] Chair",
+                    parent_ids=["inst-parent"],
+                ),
+                "inst-parent": Institution(
+                    lrz_id="inst-parent",
+                    bezeichnung="TUM",
+                    parent_ids=["inst-top"],
+                ),
+                "inst-top": Institution(
+                    lrz_id="inst-top",
+                    bezeichnung="Bayerische Hochschulen im Bereich des StMFK",
+                    parent_ids=[],
+                ),
+            }
+
+        def list_groups(self, service: str):
+            return ["pr28to-ai-c"]
+
+        def get_project_institution_links(self, project_name: str):
+            return [
+                ProjectInstitutionLink(
+                    projektname=project_name,
+                    einrichtungs_id="inst-child",
+                    link="",
+                )
+            ]
+
+    result = collect_project_list(DummyClientWithBayerische(), service="AI")
+
+    assert [entry.institution for entry in result.entries] == ["TUM"]
+
+
+def test_collect_project_list_uses_second_bezeichnung_for_oeffentlich_rechtliche():
+    class DummyClientWithOeffentlich(DummyProjectListClient):
+        def __init__(self) -> None:
+            self.institutions = {
+                "inst-child": Institution(
+                    lrz_id="inst-child",
+                    bezeichnung="Chair",
+                    parent_ids=["inst-parent"],
+                ),
+                "inst-parent": Institution(
+                    lrz_id="inst-parent",
+                    bezeichnung="LMU",
+                    parent_ids=["inst-top"],
+                ),
+                "inst-top": Institution(
+                    lrz_id="inst-top",
+                    bezeichnung="Öffentlich-Rechtliche und Gemeinnützige Körperschaften",
+                    parent_ids=[],
+                ),
+            }
+
+        def list_groups(self, service: str):
+            return ["pr28to-ai-c"]
+
+        def get_project_institution_links(self, project_name: str):
+            return [
+                ProjectInstitutionLink(
+                    projektname=project_name,
+                    einrichtungs_id="inst-child",
+                    link="",
+                )
+            ]
+
+    result = collect_project_list(DummyClientWithOeffentlich(), service="AI")
+
+    assert [entry.institution for entry in result.entries] == ["LMU"]
